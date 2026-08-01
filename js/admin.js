@@ -94,30 +94,41 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Navigation Tabs (Shinely style)
-  const navItems = document.querySelectorAll('.sb-link[data-target]');
-  const sections = document.querySelectorAll('.admin-section');
-  
-  navItems.forEach(item => {
-    item.addEventListener('click', () => {
-      navItems.forEach(n => n.classList.remove('active'));
-      sections.forEach(s => s.classList.remove('active'));
+  let currentOrderFilter = 'all';
+
+  // Bulletproof Navigation Tabs & Filter Tabs Event Delegation
+  document.addEventListener('click', (e) => {
+    // Sidebar Section Nav Tab
+    const navBtn = e.target.closest('.sb-link[data-target]');
+    if (navBtn) {
+      e.preventDefault();
+      const targetId = navBtn.dataset.target;
       
-      item.classList.add('active');
-      const targetSec = document.getElementById(item.dataset.target);
+      document.querySelectorAll('.sb-link[data-target]').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+      
+      navBtn.classList.add('active');
+      const targetSec = document.getElementById(targetId);
       if (targetSec) targetSec.classList.add('active');
       
-      refreshSection(item.dataset.target);
-    });
-  });
-
-  function refreshSection(target) {
-    switch(target) {
-      case 'section-dashboard': renderDashboard(); break;
-      case 'section-menu': renderMenuTable(); break;
-      case 'section-customers': renderCustomers(); break;
+      if (targetId === 'section-dashboard') renderDashboard();
+      else if (targetId === 'section-menu') renderMenuTable();
+      else if (targetId === 'section-customers') renderCustomers();
+      else if (targetId === 'section-settings') setupSettings();
+      return;
     }
-  }
+
+    // Orders Filter Tab (All, Pending, Confirmed, Preparing, Ready, Picked Up)
+    const filterBtn = e.target.closest('#ordersFilterTabs .filter-tab');
+    if (filterBtn) {
+      e.preventDefault();
+      document.querySelectorAll('#ordersFilterTabs .filter-tab').forEach(f => f.classList.remove('active'));
+      filterBtn.classList.add('active');
+      currentOrderFilter = filterBtn.dataset.filter;
+      renderDashboard();
+      return;
+    }
+  });
 
   // --- Main Initialization ---
   function initAdmin(userEmail) {
@@ -150,18 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   }
-
-  let currentOrderFilter = 'all';
-  
-  const filterTabs = document.querySelectorAll('#ordersFilterTabs .filter-tab');
-  filterTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      filterTabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      currentOrderFilter = tab.dataset.filter;
-      renderDashboard();
-    });
-  });
 
   // --- Dashboard & Orders ---
   function renderDashboard() {

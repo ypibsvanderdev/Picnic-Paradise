@@ -287,8 +287,8 @@ body.admin-body {
 }
 
 /* Sections */
-.admin-section { display: none; }
-.admin-section.active { display: block; animation: fadeIn 0.2s ease; }
+.admin-section { display: none !important; }
+.admin-section.active { display: block !important; animation: fadeIn 0.2s ease; }
 
 /* Login Box */
 .admin-login {
