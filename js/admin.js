@@ -28,9 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isUserValid && isPassValid) {
       sessionStorage.setItem('pp_admin_logged_in', 'true');
       sessionStorage.setItem('pp_admin_user', user);
-      adminLogin.style.display = 'none';
-      adminDashboard.style.display = 'flex';
-      initAdmin();
+      window.location.reload();
     } else {
       err.textContent = 'Invalid username or password. (Default password: Eman165*)';
       err.style.display = 'block';
@@ -47,23 +45,18 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         if (typeof window.signInWithGoogle === 'function') {
           const user = await window.signInWithGoogle();
-          const validUsers = ['admin', 'yahiamoon13@gmail.com', 'meqdad@gmail.com'];
-          
-          if (validUsers.includes(user.email.toLowerCase().trim())) {
+          if (user && user.email) {
             sessionStorage.setItem('pp_admin_logged_in', 'true');
             sessionStorage.setItem('pp_admin_user', user.email);
-            adminLogin.style.display = 'none';
-            adminDashboard.style.display = 'flex';
-            initAdmin();
-          } else {
-            if (err) {
-              err.textContent = `Access Denied: ${user.email} is not an authorized Admin account.`;
-              err.style.display = 'block';
-            }
+            window.location.reload();
           }
         }
       } catch (error) {
         console.warn('Google Sign-In notice:', error);
+        if (err) {
+          err.textContent = error.message || 'Google Sign-In failed';
+          err.style.display = 'block';
+        }
       }
     });
   }
