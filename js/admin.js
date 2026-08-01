@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const err = document.getElementById('adminLoginError');
     
     const validUsers = ['admin', 'yahiamoon13@gmail.com', 'meqdad@gmail.com'];
-    const storedPass = localStorage.getItem('pp_admin_pass') || 'picnic2026';
+    const storedPass = localStorage.getItem('pp_admin_pass') || 'Eman165*';
     
     if (validUsers.includes(user.toLowerCase().trim()) && pass === storedPass) {
       sessionStorage.setItem('pp_admin_logged_in', 'true');
