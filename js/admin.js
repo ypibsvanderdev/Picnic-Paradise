@@ -308,11 +308,40 @@ function renderOrdersTable(orders) {
         </select>
       </td>
       <td>
-        <button type="button" class="btn btn-sm btn-outline" style="padding:4px 10px; font-size:0.8rem; color:#fff; border-color:var(--dash-border);" onclick="window.printReceipt('${o.orderId}')">🖨️ Receipt</button>
+        <div style="display:flex; gap:6px;">
+          <button type="button" class="btn btn-sm btn-outline" style="padding:4px 10px; font-size:0.8rem; color:#fff; border-color:var(--dash-border); cursor:pointer;" onclick="window.printReceipt('${o.orderId}')">🖨️ Receipt</button>
+          <button type="button" class="btn btn-sm btn-outline" style="padding:4px 10px; font-size:0.8rem; color:var(--dash-red); border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.1); cursor:pointer;" onclick="window.deleteOrder('${o.orderId}')">🗑️ Delete</button>
+        </div>
       </td>
     </tr>
   `).join('');
 }
+
+window.deleteOrder = function(orderId) {
+  if (!confirm(`Are you sure you want to delete order #${(orderId || '').replace('PP-','')}? This action cannot be undone.`)) {
+    return;
+  }
+
+  // Remove from localStorage
+  let orders = getLocalOrders();
+  orders = orders.filter(o => o && o.orderId !== orderId);
+  setLocalOrders(orders);
+
+  // Remove from current memory state
+  if (window.currentAdminOrders) {
+    window.currentAdminOrders = window.currentAdminOrders.filter(o => o && o.orderId !== orderId);
+  }
+
+  // Delete from Firebase Firestore
+  if (typeof firebase !== 'undefined' && firebase.firestore) {
+    try {
+      firebase.firestore().collection('orders').doc(orderId).delete().catch(e => console.warn('Firestore delete notice:', e));
+    } catch(e) {}
+  }
+
+  renderDashboard();
+  renderCustomers();
+};
 
 window.changeOrderStatus = function(orderId, newStatus) {
   if (typeof window.updateOrderStatusInFirebase === 'function') {
