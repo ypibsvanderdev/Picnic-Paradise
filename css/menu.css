@@ -1,0 +1,347 @@
+/* menu.css */
+.menu-header {
+  padding: 4rem 1rem;
+  background-color: var(--pp-bg-alt);
+}
+
+.menu-header h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.search-bar {
+  max-width: 500px;
+  margin: 2rem auto 0;
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--pp-text-secondary);
+}
+
+.search-bar .input {
+  padding-left: 2.5rem;
+  width: 100%;
+}
+
+.menu-controls {
+  margin: 2rem 0;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.5rem 0;
+  scrollbar-width: none;
+}
+.filter-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-tab {
+  padding: 0.5rem 1.5rem;
+  border-radius: var(--pp-radius-full);
+  border: 1px solid var(--pp-border);
+  background: var(--pp-surface);
+  color: var(--pp-text);
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--pp-transition-fast);
+}
+
+.filter-tab:hover {
+  border-color: var(--pp-primary);
+}
+
+.filter-tab.active {
+  background: var(--pp-primary);
+  color: #fff;
+  border-color: var(--pp-primary);
+}
+
+.sort-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-bottom: 4rem;
+}
+
+.product-card {
+  background: var(--pp-surface);
+  border-radius: var(--pp-radius);
+  overflow: hidden;
+  box-shadow: var(--pp-shadow);
+  cursor: pointer;
+  transition: var(--pp-transition);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--pp-shadow-lg);
+}
+
+.product-card-image {
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  position: relative;
+}
+
+.product-card-body {
+  padding: 1.5rem;
+  flex-grow: 1;
+}
+
+.product-card-name {
+  font-weight: 600;
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.product-card-price {
+  color: var(--pp-primary);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.product-card-rating {
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.product-card-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: var(--pp-accent);
+  color: #fff;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--pp-radius-full);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.product-card-favorite {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  background: rgba(255, 255, 255, 0.8);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform var(--pp-transition-fast);
+  color: var(--pp-accent);
+  font-size: 1.2rem;
+}
+[data-theme="dark"] .product-card-favorite {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.product-card-favorite:hover {
+  transform: scale(1.1);
+}
+
+.product-card.sold-out {
+  opacity: 0.5;
+  filter: grayscale(100%);
+  pointer-events: none;
+}
+
+.product-card-actions {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--pp-border);
+  display: flex;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 4rem 1rem;
+}
+
+.empty-emoji {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+/* Modal specific */
+.product-modal-body {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .product-modal-body {
+    flex-direction: row;
+  }
+}
+
+.product-modal-image {
+  height: 250px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 5rem;
+  position: relative;
+}
+
+@media (min-width: 768px) {
+  .product-modal-image {
+    width: 40%;
+    height: auto;
+    min-height: 400px;
+  }
+}
+
+.product-modal-content {
+  padding: 2rem;
+  flex: 1;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.modal-section {
+  margin: 1.5rem 0;
+}
+
+.modal-section h4 {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.size-selector {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.size-btn {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--pp-border);
+  border-radius: var(--pp-radius-sm);
+  background: var(--pp-surface);
+  cursor: pointer;
+  transition: var(--pp-transition-fast);
+  text-align: center;
+  font-weight: 500;
+}
+
+.size-btn:hover {
+  border-color: var(--pp-primary);
+}
+
+.size-btn.active {
+  background: var(--pp-primary);
+  color: #fff;
+  border-color: var(--pp-primary);
+}
+
+.flavor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.5rem;
+}
+
+.flavor-option {
+  padding: 0.5rem;
+  border: 1px solid var(--pp-border);
+  border-radius: var(--pp-radius-sm);
+  background: var(--pp-surface);
+  cursor: pointer;
+  text-align: center;
+  font-size: 0.9rem;
+}
+.flavor-option.active {
+  border-color: var(--pp-primary);
+  background: var(--pp-primary-light);
+  color: var(--pp-text);
+}
+
+.addin-list {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.addin-option {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--pp-border);
+  border-radius: var(--pp-radius-full);
+  background: var(--pp-surface);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.addin-option.active {
+  background: var(--pp-primary);
+  color: #fff;
+  border-color: var(--pp-primary);
+}
+
+.quantity-stepper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stepper-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--pp-border);
+  background: var(--pp-surface);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.stepper-btn:hover {
+  background: var(--pp-bg-alt);
+}
+
+.modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.also-bought {
+  border-top: 1px solid var(--pp-border);
+  padding: 1.5rem 2rem;
+  background: var(--pp-bg-alt);
+}
+
+.also-bought-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Your order is confirmed at Picnic Paradise.">
+  <title>Order Confirmed | Picnic Paradise</title>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <style>
+    .confirmation-page {
+      max-width: 600px;
+      margin: 4rem auto;
+      text-align: center;
+    }
+    .success-icon {
+      font-size: 5rem;
+      margin-bottom: 1rem;
+      display: inline-block;
+      animation: scaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    @keyframes scaleIn {
+      0% { transform: scale(0); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .tracker-steps {
+      display: flex;
+      justify-content: space-between;
+      margin: 3rem 0;
+      position: relative;
+    }
+    .tracker-steps::before {
+      content: '';
+      position: absolute;
+      top: 15px;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: var(--pp-border);
+      z-index: 0;
+    }
+    .tracker-step {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--pp-bg);
+      padding: 0 0.5rem;
+    }
+    .step-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--pp-surface);
+      border: 2px solid var(--pp-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+    .tracker-step.active .step-circle,
+    .tracker-step.completed .step-circle {
+      background: var(--pp-primary);
+      border-color: var(--pp-primary);
+      color: white;
+    }
+    .order-details-card {
+      text-align: left;
+      margin-bottom: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="nav-logo">
+        <span class="nav-logo-icon">🧺</span>
+        <span class="nav-logo-text">Picnic Paradise</span>
+      </a>
+      <div class="nav-links" id="navLinks">
+        <a href="index.html" class="nav-link" data-page="home">Home</a>
+        <a href="menu.html" class="nav-link" data-page="menu">Menu</a>
+        <a href="cart.html" class="nav-link nav-link-cart" data-page="cart">
+          Cart
+          <span class="cart-badge" id="cartBadge" style="display:none;">0</span>
+        </a>
+        <a href="account.html" class="nav-link" data-page="account">Account</a>
+      </div>
+      <div class="nav-actions">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" title="Toggle dark mode">
+          <span class="theme-icon">🌙</span>
+        </button>
+        <button class="hamburger" id="hamburger" aria-label="Toggle navigation menu">
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container confirmation-page">
+    <div class="success-icon">🎉</div>
+    <h1 style="margin-bottom: 0.5rem;">Order Confirmed!</h1>
+    <p class="text-muted" style="margin-bottom: 2rem;">Thank you for your order, <span id="confName">Customer</span>.</p>
+    
+    <div class="tracker-steps">
+      <div class="tracker-step completed">
+        <div class="step-circle">✓</div>
+        <small>Confirmed</small>
+      </div>
+      <div class="tracker-step active">
+        <div class="step-circle">2</div>
+        <small>Preparing</small>
+      </div>
+      <div class="tracker-step">
+        <div class="step-circle">3</div>
+        <small>Ready</small>
+      </div>
+      <div class="tracker-step">
+        <div class="step-circle">4</div>
+        <small>Picked Up</small>
+      </div>
+    </div>
+
+    <div class="card order-details-card card-glass" style="padding: 2rem;">
+      <h3 style="border-bottom: 1px solid var(--pp-border); padding-bottom: 1rem; margin-bottom: 1rem;">
+        Order <span id="confOrderId" class="text-primary">#PP-000</span>
+      </h3>
+      
+      <div id="confItemsList" style="margin-bottom: 1rem;">
+        <!-- Items go here -->
+      </div>
+      
+      <div style="border-top: 1px solid var(--pp-border); padding-top: 1rem; margin-top: 1rem;">
+        <div style="display: flex; justify-content: space-between;">
+          <span>Total Paid</span>
+          <strong id="confTotal">$0.00</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 0.5rem;">
+          <span>Pickup Time</span>
+          <strong id="confPickup" class="text-primary" style="color: var(--pp-primary);">12:00 PM</strong>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card card-glass" style="margin-bottom: 2rem; background: var(--pp-bg-alt); color: var(--pp-text); padding: 1.5rem; text-align: left;">
+      <h4 style="margin-bottom: 0.5rem;">📍 Pickup Instructions</h4>
+      <p style="margin: 0; line-height: 1.5;">Head to the <strong>Online Orders</strong> window at Central Park Pavilion at your designated pickup time. Have this order number ready!</p>
+    </div>
+
+    <div style="display: flex; gap: 1rem; justify-content: center;">
+      <a href="menu.html" class="btn btn-outline" style="padding: 0.75rem 1.5rem; border: 1px solid var(--pp-border); border-radius: var(--pp-radius-sm); text-decoration: none; color: var(--pp-text);">Back to Menu</a>
+      <a href="account.html" class="btn btn-primary" style="padding: 0.75rem 1.5rem; background: var(--pp-primary); color: white; border-radius: var(--pp-radius-sm); text-decoration: none;">View Order History</a>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer" id="footer" style="margin-top: 4rem;">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h3 class="footer-title">🧺 Picnic Paradise</h3>
+          <p class="footer-desc">Join us August 28, 2026 for delicious food and refreshing drinks at Central Park Pavilion!</p>
+        </div>
+        <div class="footer-col">
+          <h4 class="footer-subtitle">Quick Links</h4>
+          <ul class="footer-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="menu.html">Menu</a></li>
+            <li><a href="cart.html">Order Now</a></li>
+            <li><a href="account.html">My Account</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4 class="footer-subtitle">Legal</h4>
+          <ul class="footer-links">
+            <li><a href="privacy.html">Privacy Policy</a></li>
+            <li><a href="terms.html">Terms of Service</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4 class="footer-subtitle">Contact</h4>
+          <p>📧 hello@picnicparadise.com</p>
+          <p>📞 (555) 123-4567</p>
+          <p>📍 Central Park Pavilion</p>
+          <div class="social-links">
+            <a href="#" aria-label="Instagram" class="social-icon">📸</a>
+            <a href="#" aria-label="Facebook" class="social-icon">📘</a>
+            <a href="#" aria-label="Twitter" class="social-icon">🐦</a>
+            <a href="#" aria-label="TikTok" class="social-icon">🎵</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 Picnic Paradise. All rights reserved. | Event Date: August 28, 2026</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderId = urlParams.get('id');
+      if (!orderId) {
+        window.location.href = 'index.html';
+        return;
+      }
+      
+      const orders = JSON.parse(localStorage.getItem('pp_orders')) || [];
+      const order = orders.find(o => o.orderId === orderId);
+      
+      if (!order) {
+        document.body.innerHTML = '<div class="container" style="text-align:center; padding: 5rem 0;"><h1>Order Not Found</h1><a href="index.html">Go Home</a></div>';
+        return;
+      }
+      
+      const nameEl = document.getElementById('confName');
+      if(nameEl && order.customerName) nameEl.textContent = order.customerName.split(' ')[0];
+      
+      const orderIdEl = document.getElementById('confOrderId');
+      if(orderIdEl) orderIdEl.textContent = '#' + order.orderId;
+      
+      const totalEl = document.getElementById('confTotal');
+      if(totalEl) totalEl.textContent = '$' + order.total.toFixed(2);
+      
+      const pickupEl = document.getElementById('confPickup');
+      if(pickupEl) pickupEl.textContent = order.pickupTime;
+      
+      const itemsList = document.getElementById('confItemsList');
+      if(itemsList) {
+        order.items.forEach(item => {
+          const div = document.createElement('div');
+          div.style.display = 'flex';
+          div.style.justifyContent = 'space-between';
+          div.style.marginBottom = '0.5rem';
+          div.innerHTML = \`
+            <span>\${item.quantity}x \${item.name} <small class="text-muted" style="color:var(--pp-text-secondary);">(\${item.size || 'single'})</small></span>
+            <span>$\${(item.unitPrice * item.quantity).toFixed(2)}</span>
+          \`;
+          itemsList.appendChild(div);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
