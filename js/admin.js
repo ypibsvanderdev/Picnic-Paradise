@@ -18,10 +18,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const pass = document.getElementById('adminPass').value;
     const err = document.getElementById('adminLoginError');
     
+    const validUsers = ['admin', 'yahiamoon13@gmail.com', 'meqdad@gmail.com'];
     const storedPass = localStorage.getItem('pp_admin_pass') || 'picnic2026';
     
-    if (user === 'admin' && pass === storedPass) {
+    if (validUsers.includes(user.toLowerCase().trim()) && pass === storedPass) {
       sessionStorage.setItem('pp_admin_logged_in', 'true');
+      sessionStorage.setItem('pp_admin_user', user);
       adminLogin.style.display = 'none';
       adminDashboard.style.display = 'flex';
       initAdmin();
