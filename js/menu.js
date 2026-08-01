@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         card.addEventListener('click', (e) => {
-          if (!e.target.closest('.quick-add-btn') && !e.target.closest('.product-card-favorite')) {
+          if (!e.target.closest('.order-btn') && !e.target.closest('.product-card-favorite')) {
             openProductModal(item.id);
           }
         });
