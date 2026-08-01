@@ -76,8 +76,8 @@ document.addEventListener('DOMContentLoaded', () => {
         itemEl.className = 'cart-item card';
         itemEl.style.display = 'flex';
         itemEl.style.gap = '1rem';
-        itemEl.style.padding = '1rem';
-        itemEl.style.alignItems = 'center';
+        itemEl.style.padding = '1.25rem';
+        itemEl.style.alignItems = 'flex-start';
         
         let emoji = '🥤';
         let gradient = '#eee, #ccc';
@@ -89,42 +89,68 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
 
-        let detailsHtml = '';
-        if (item.size && item.size !== 'single') detailsHtml += `<span class="badge" style="background:var(--pp-bg-alt); color:var(--pp-text); padding:0.25rem 0.6rem; border-radius:6px; font-size:0.8rem; font-weight:600;">Size: ${item.size.charAt(0).toUpperCase() + item.size.slice(1)}</span> `;
-        if (item.flavor) detailsHtml += `<span class="badge" style="background:var(--pp-bg-alt); color:var(--pp-text); padding:0.25rem 0.6rem; border-radius:6px; font-size:0.8rem; font-weight:600;">Flavor: ${item.flavor}</span> `;
-        
-        if (item.addIns && item.addIns.length > 0) {
-          const addInNames = item.addIns.map(a => typeof a === 'string' ? a : (a.name || a)).join(', ');
-          detailsHtml += `<div class="cart-item-addins" style="font-size: 0.85rem; color: var(--pp-primary-dark); margin-top: 0.4rem; font-weight: 500;"><strong>+ Add-ins:</strong> ${addInNames}</div>`;
+        let badgesHtml = '';
+        if (item.size && item.size !== 'single') {
+          badgesHtml += `<span class="badge" style="background:var(--pp-bg-alt); color:var(--pp-text); padding:0.25rem 0.6rem; border-radius:6px; font-size:0.8rem; font-weight:600; text-transform:uppercase;">Size: ${item.size}</span> `;
+        }
+        if (item.flavor) {
+          badgesHtml += `<span class="badge" style="background:var(--pp-bg-alt); color:var(--pp-text); padding:0.25rem 0.6rem; border-radius:6px; font-size:0.8rem; font-weight:600;">Flavor: ${item.flavor}</span> `;
         }
         
-        if (item.specialInstructions && item.specialInstructions.trim()) {
-          detailsHtml += `<div class="cart-item-instructions" style="font-size: 0.85rem; color: var(--pp-accent-dark); background: rgba(255, 107, 107, 0.08); padding: 0.3rem 0.6rem; border-radius: 6px; margin-top: 0.4rem; font-style: italic; border-left: 3px solid var(--pp-accent);"><strong>📝 Note:</strong> ${item.specialInstructions}</div>`;
+        let addInsHtml = '';
+        if (item.addIns && item.addIns.length > 0) {
+          const addInNames = item.addIns.map(a => typeof a === 'string' ? a : (a.name || a)).join(', ');
+          addInsHtml = `<div class="cart-item-addins" style="font-size: 0.85rem; color: var(--pp-primary-dark); margin-top: 0.4rem; font-weight: 600;">✨ Add-ins: ${addInNames}</div>`;
         }
 
         const lineTotal = item.unitPrice * item.quantity;
 
         itemEl.innerHTML = `
-          <div class="cart-item-image" style="background: linear-gradient(135deg, ${gradient}); width: 80px; height: 80px; display:flex; align-items:center; justify-content:center; font-size:2.5rem; border-radius:8px;">
+          <div class="cart-item-image" style="background: linear-gradient(135deg, ${gradient}); width: 80px; height: 80px; display:flex; align-items:center; justify-content:center; font-size:2.5rem; border-radius:12px; flex-shrink:0;">
             <span>${emoji}</span>
           </div>
           <div class="cart-item-info" style="flex:1;">
-            <div class="cart-item-header" style="display: flex; justify-content: space-between; align-items: start;">
-              <h4 style="margin:0;">${item.name}</h4>
-              <button class="btn-icon text-danger remove-btn" data-index="${index}" aria-label="Remove item" style="background:transparent; border:none; cursor:pointer;">🗑️</button>
+            <div class="cart-item-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <h4 style="margin:0; font-family:'Outfit',sans-serif; font-size:1.1rem; font-weight:700;">${item.name}</h4>
+              <button class="btn-icon text-danger remove-btn" data-index="${index}" aria-label="Remove item" title="Remove item" style="background:transparent; border:none; cursor:pointer; font-size:1.1rem; opacity:0.6; transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">🗑️</button>
             </div>
-            <div style="margin: 0.25rem 0;">${detailsHtml}</div>
-            <div class="cart-item-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
-              <div class="quantity-stepper" style="display:flex; align-items:center; gap:0.5rem;">
-                <button class="stepper-btn qty-minus" data-index="${index}" style="width:24px; height:24px; border-radius:50%; border:1px solid var(--pp-border); background:var(--pp-surface); cursor:pointer;">-</button>
-                <span style="min-width:20px; text-align:center;">${item.quantity}</span>
-                <button class="stepper-btn qty-plus" data-index="${index}" style="width:24px; height:24px; border-radius:50%; border:1px solid var(--pp-border); background:var(--pp-surface); cursor:pointer;">+</button>
+            <div style="margin: 0.4rem 0; display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center;">
+              ${badgesHtml}
+            </div>
+            ${addInsHtml}
+            
+            <div class="cart-item-note-section" style="margin-top: 0.5rem;">
+              <div style="display:flex; align-items:center; gap:0.4rem; font-size:0.8rem; font-weight:600; color:var(--pp-text-secondary); margin-bottom:2px;">
+                <span>📝 Order Note / Instructions:</span>
               </div>
-              <div class="cart-item-price" style="font-weight: 600;">$${lineTotal.toFixed(2)}</div>
+              <input type="text" class="input cart-note-input" data-index="${index}" 
+                placeholder="Special requests (e.g. extra hot, no whip, light ice)..." 
+                value="${item.specialInstructions || ''}" 
+                style="font-size: 0.85rem; padding: 6px 12px; width: 100%; border-radius: 8px; border: 1px solid var(--pp-border); background: var(--pp-bg-alt);">
+            </div>
+
+            <div class="cart-item-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
+              <div class="quantity-stepper" style="display:flex; align-items:center; gap:0.5rem; background:var(--pp-bg-alt); padding:3px 8px; border-radius:20px;">
+                <button class="stepper-btn qty-minus" data-index="${index}" style="width:24px; height:24px; border-radius:50%; border:none; background:var(--pp-surface); cursor:pointer; font-weight:bold; box-shadow:0 1px 3px rgba(0,0,0,0.1);">-</button>
+                <span style="min-width:20px; text-align:center; font-weight:600;">${item.quantity}</span>
+                <button class="stepper-btn qty-plus" data-index="${index}" style="width:24px; height:24px; border-radius:50%; border:none; background:var(--pp-surface); cursor:pointer; font-weight:bold; box-shadow:0 1px 3px rgba(0,0,0,0.1);">+</button>
+              </div>
+              <div class="cart-item-price" style="font-weight: 700; font-family:'Outfit',sans-serif; font-size:1.2rem; color:var(--pp-primary);">$${lineTotal.toFixed(2)}</div>
             </div>
           </div>
         `;
         cartItemsContainer.appendChild(itemEl);
+      });
+
+      // Wire up note inputs
+      document.querySelectorAll('.cart-note-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const idx = parseInt(e.target.dataset.index);
+          if (cart[idx]) {
+            cart[idx].specialInstructions = e.target.value;
+            localStorage.setItem('pp_cart', JSON.stringify(cart));
+          }
+        });
       });
 
       // Wire up buttons
