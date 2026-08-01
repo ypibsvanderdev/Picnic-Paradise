@@ -263,16 +263,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentModalItem.addIns && currentModalItem.addIns.length > 0) {
       document.getElementById('modalAddinSection').style.display = 'block';
       currentModalItem.addIns.forEach(addin => {
+        const addinName = typeof addin === 'string' ? addin : addin.name;
+        const addinPrice = typeof addin === 'object' && addin.price ? addin.price : 0;
+        
         const div = document.createElement('div');
         div.className = 'addin-option';
-        div.textContent = `+ ${addin.name} ($${addin.price.toFixed(2)})`;
-        div.dataset.addin = JSON.stringify(addin);
+        div.textContent = addinPrice > 0 ? `+ ${addinName} ($${addinPrice.toFixed(2)})` : `+ ${addinName}`;
+        div.dataset.addin = typeof addin === 'string' ? addin : JSON.stringify(addin);
         div.addEventListener('click', () => {
           div.classList.toggle('active');
           if (div.classList.contains('active')) {
             modalSelections.addIns.push(addin);
           } else {
-            modalSelections.addIns = modalSelections.addIns.filter(a => a.name !== addin.name);
+            modalSelections.addIns = modalSelections.addIns.filter(a => (typeof a === 'string' ? a : a.name) !== addinName);
           }
           updateModalPrice();
         });
@@ -290,8 +293,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateModalPrice() {
     if (!currentModalItem) return;
-    let basePrice = currentModalItem.prices[modalSelections.size] || 0;
-    let addInPrice = modalSelections.addIns.reduce((sum, a) => sum + a.price, 0);
+    let basePrice = currentModalItem.prices[modalSelections.size] || currentModalItem.prices.single || currentModalItem.prices.medium || currentModalItem.prices.small || 0;
+    let addInPrice = modalSelections.addIns.reduce((sum, a) => sum + (typeof a === 'object' && a.price ? a.price : 0), 0);
     let total = (basePrice + addInPrice) * modalSelections.quantity;
     modalPrice.textContent = `$${total.toFixed(2)}`;
   }
@@ -332,6 +335,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if(modalAddToCart) {
     modalAddToCart.addEventListener('click', () => {
+      const basePrice = currentModalItem.prices[modalSelections.size] || currentModalItem.prices.single || currentModalItem.prices.medium || currentModalItem.prices.small || 0;
+      const addInPrice = modalSelections.addIns.reduce((s,a) => s + (typeof a === 'object' && a.price ? a.price : 0), 0);
+      
       const cartItem = {
         cartId: 'ci_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
         itemId: currentModalItem.id,
@@ -341,13 +347,14 @@ document.addEventListener('DOMContentLoaded', () => {
         flavor: modalSelections.flavor,
         addIns: modalSelections.addIns,
         quantity: modalSelections.quantity,
-        unitPrice: currentModalItem.prices[modalSelections.size] + modalSelections.addIns.reduce((s,a)=>s+a.price,0),
+        unitPrice: basePrice + addInPrice,
         specialInstructions: modalInstructions.value
       };
       
       if (typeof addToCart === 'function') {
         addToCart(cartItem);
-        if (typeof showToast === 'function') showToast('Added to cart!');
+      } else if (window.PPUtils && window.PPUtils.addToCart) {
+        window.PPUtils.addToCart(cartItem);
       } else {
         const cart = JSON.parse(localStorage.getItem('pp_cart')) || [];
         cart.push(cartItem);
