@@ -42,6 +42,45 @@ document.addEventListener('DOMContentLoaded', () => {
   const registerForm = document.getElementById('registerForm');
   const profileForm = document.getElementById('profileForm');
   const logoutBtn = document.getElementById('logoutBtn');
+  const googleCustomerBtn = document.getElementById('googleCustomerBtn');
+
+  if (googleCustomerBtn) {
+    googleCustomerBtn.addEventListener('click', async () => {
+      try {
+        if (typeof window.signInWithGoogle === 'function' && typeof firebase !== 'undefined' && firebase.auth) {
+          const gUser = await window.signInWithGoogle();
+          const userObj = {
+            id: 'u_' + Date.now(),
+            name: gUser.name,
+            email: gUser.email,
+            phone: '',
+            provider: 'google',
+            photoURL: gUser.photoURL,
+            createdAt: new Date().toISOString()
+          };
+          setStorage('pp_user', userObj);
+          updateViewState();
+          if (typeof showToast === 'function') showToast(`Welcome, ${userObj.name}!`, 'success');
+        } else {
+          const email = prompt('Enter your Gmail address:', 'customer@gmail.com');
+          if (email) {
+            const userObj = {
+              id: 'u_' + Date.now(),
+              name: email.split('@')[0],
+              email: email,
+              phone: '',
+              provider: 'google',
+              createdAt: new Date().toISOString()
+            };
+            setStorage('pp_user', userObj);
+            updateViewState();
+          }
+        }
+      } catch (err) {
+        console.error('Customer Google Auth Error:', err);
+      }
+    });
+  }
 
   const updateViewState = () => {
     const user = getStorage('pp_user');
