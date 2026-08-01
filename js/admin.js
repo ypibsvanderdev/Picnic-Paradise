@@ -122,51 +122,80 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Dashboard Data ---
   function renderDashboard() {
     const orders = getStorage('pp_orders') || [];
-    const today = new Date().toDateString();
     
     let totalRev = 0;
-    let todayRev = 0;
     let itemsSold = 0;
+    let payCounts = { card: 0, apple: 0, google: 0 };
     
     orders.forEach(o => {
-      totalRev += o.total;
-      if (new Date(o.timestamp).toDateString() === today) {
-        todayRev += o.total;
+      totalRev += (o.total || 0);
+      if (o.items && Array.isArray(o.items)) {
+        itemsSold += o.items.reduce((acc, item) => acc + (item.quantity || 1), 0);
       }
-      itemsSold += o.items.reduce((acc, item) => acc + item.quantity, 0);
+      const payStr = (o.paymentMethod || '').toLowerCase();
+      if (payStr.includes('apple')) payCounts.apple++;
+      else if (payStr.includes('google')) payCounts.google++;
+      else payCounts.card++;
     });
-    
-    const items = (typeof getMenuItems === 'function') ? getMenuItems() : (window.MENU_ITEMS || []);
-    const activeItems = items.filter(i => !i.soldOut).length;
     
     const elOrders = document.getElementById('statTotalOrders');
     const elRev = document.getElementById('statRevenue');
     const elSold = document.getElementById('statItemsSold');
-    const elActive = document.getElementById('statActiveItems');
+    const elPay = document.getElementById('statPaymentMethods');
 
     if (elOrders) elOrders.textContent = orders.length;
-    if (elRev) elRev.textContent = formatCurrency(todayRev);
+    if (elRev) elRev.textContent = formatCurrency(totalRev);
     if (elSold) elSold.textContent = itemsSold;
-    if (elActive) elActive.textContent = activeItems;
+    if (elPay) {
+      elPay.innerHTML = `💳 ${payCounts.card} | 🍎 ${payCounts.apple} | 🌐 ${payCounts.google}`;
+    }
     
+    renderRecentOrdersTable(orders);
+  }
+
+  function formatOrderItemsHtml(items) {
+    if (!items || !items.length) return '<span class="text-muted">No items</span>';
+    return items.map(i => {
+      let addInsText = '';
+      if (i.addIns && i.addIns.length > 0) {
+        const names = i.addIns.map(a => typeof a === 'string' ? a : (a.name || a)).join(', ');
+        addInsText = `<div style="font-size:0.75rem; color:var(--pp-primary-dark);">+ ${names}</div>`;
+      }
+      let noteText = '';
+      if (i.specialInstructions && i.specialInstructions.trim()) {
+        noteText = `<div style="font-size:0.75rem; color:var(--pp-accent-dark); font-style:italic;">📝 ${i.specialInstructions}</div>`;
+      }
+      return `
+        <div style="margin-bottom:0.25rem;">
+          <strong>${i.quantity}x ${i.name}</strong> <small>(${i.size || 'single'}${i.flavor ? ' - ' + i.flavor : ''})</small>
+          ${addInsText}
+          ${noteText}
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderRecentOrdersTable(orders) {
     const recentOrders = [...orders].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 10);
     const tbody = document.getElementById('recentOrdersTable');
-    if (tbody) {
-      if (recentOrders.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding: 2rem;">No orders placed yet. Place an order on the menu page to test!</td></tr>`;
-      } else {
-        tbody.innerHTML = recentOrders.map(o => `
-          <tr>
-            <td><strong>#${o.orderId.split('-')[1] || o.orderId}</strong></td>
-            <td>${o.customerName || 'Guest'}</td>
-            <td>${o.items ? o.items.length : 0} items</td>
-            <td>${formatCurrency(o.total || 0)}</td>
-            <td><span class="status-badge status-${o.status}">${o.status}</span></td>
-            <td>${new Date(o.timestamp).toLocaleTimeString()}</td>
-          </tr>
-        `).join('');
-      }
+    if (!tbody) return;
+    
+    if (recentOrders.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted" style="padding: 2rem;">No orders placed yet. Place an order on the menu page to test!</td></tr>`;
+      return;
     }
+
+    tbody.innerHTML = recentOrders.map(o => `
+      <tr>
+        <td><strong>#${o.orderId.replace('PP-','')}</strong></td>
+        <td><strong style="color:var(--pp-primary-dark); font-size:0.95rem;">${o.customerName || 'Guest'}</strong><br><small class="text-muted">${o.customerPhone || ''}</small></td>
+        <td>${formatOrderItemsHtml(o.items)}</td>
+        <td><span class="badge" style="background:var(--pp-bg-alt); padding:4px 8px; border-radius:6px; font-weight:600;">${o.paymentMethod || 'Credit Card 💳'}</span></td>
+        <td><strong>${formatCurrency(o.total || 0)}</strong></td>
+        <td>${o.pickupTime || '12:00 PM'}</td>
+        <td><span class="status-badge status-${o.status}">${o.status}</span></td>
+      </tr>
+    `).join('');
   }
 
   // Quick actions
@@ -239,6 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderOrdersTable() {
     const tbody = document.getElementById('fullOrdersTable');
+    if (!tbody) return;
     let orders = getStorage('pp_orders') || [];
     
     if (currentOrderFilter !== 'all') {
@@ -247,15 +277,22 @@ document.addEventListener('DOMContentLoaded', () => {
     
     orders.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
     
+    if (orders.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted" style="padding: 2rem;">No orders found.</td></tr>`;
+      return;
+    }
+
     tbody.innerHTML = orders.map(o => `
       <tr>
         <td><input type="checkbox" class="order-select-cb" value="${o.orderId}"></td>
-        <td><strong>#${o.orderId.split('-')[1] || o.orderId}</strong></td>
-        <td>${o.customerName}<br><small class="text-secondary">${o.customerPhone}</small></td>
-        <td>${formatCurrency(o.total)}</td>
-        <td>${o.pickupTime}</td>
+        <td><strong>#${o.orderId.replace('PP-','')}</strong></td>
+        <td><strong style="color:var(--pp-primary-dark); font-size:0.95rem;">${o.customerName || 'Guest'}</strong><br><small class="text-muted">${o.customerPhone || ''}</small></td>
+        <td>${formatOrderItemsHtml(o.items)}</td>
+        <td><span class="badge" style="background:var(--pp-bg-alt); padding:4px 8px; border-radius:6px; font-weight:600;">${o.paymentMethod || 'Credit Card 💳'}</span></td>
+        <td><strong>${formatCurrency(o.total || 0)}</strong></td>
+        <td>${o.pickupTime || '12:00 PM'}</td>
         <td>
-          <select class="select btn-sm" style="padding: 4px; border-radius: 4px;" onchange="window.changeOrderStatus('${o.orderId}', this.value)">
+          <select class="select btn-sm" style="padding: 4px; border-radius: 4px; font-weight:600;" onchange="window.changeOrderStatus('${o.orderId}', this.value)">
             <option value="pending" ${o.status==='pending'?'selected':''}>Pending</option>
             <option value="confirmed" ${o.status==='confirmed'?'selected':''}>Confirmed</option>
             <option value="preparing" ${o.status==='preparing'?'selected':''}>Preparing</option>
@@ -264,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </select>
         </td>
         <td>
-          <button class="btn btn-sm btn-outline" onclick="window.printReceipt('${o.orderId}')">Print</button>
+          <button class="btn btn-sm btn-outline" onclick="window.printReceipt('${o.orderId}')">🖨️ Receipt</button>
         </td>
       </tr>
     `).join('');

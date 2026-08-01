@@ -114,14 +114,24 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function processPayment() {
-    const name = document.getElementById('checkoutName').value;
-    const email = document.getElementById('checkoutEmail').value;
-    const phone = document.getElementById('checkoutPhone').value;
-    const pickupTime = document.getElementById('pickupTime').value;
-    const instructions = document.getElementById('orderInstructions').value;
+    const nameInput = document.getElementById('checkoutName');
+    const emailInput = document.getElementById('checkoutEmail');
+    const phoneInput = document.getElementById('checkoutPhone');
     
-    if (!name || !email || !phone) {
-      alert('Please fill out all contact information.');
+    const name = nameInput ? nameInput.value.trim() : '';
+    const email = emailInput ? emailInput.value.trim() : '';
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+    const pickupTime = document.getElementById('pickupTime')?.value || '12:00 PM';
+    const instructions = document.getElementById('orderInstructions')?.value || '';
+    
+    if (!name || name.length < 2) {
+      alert('⚠️ Please enter your Full Name for the order pickup.');
+      if (nameInput) nameInput.focus();
+      return;
+    }
+    
+    if (!email || !phone) {
+      alert('⚠️ Please fill out your Email and Phone Number so we can update you on your order status.');
       return;
     }
     
@@ -148,12 +158,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if(guestCheckoutSection) guestCheckoutSection.style.display = 'none';
     if(checkoutLoading) checkoutLoading.style.display = 'block';
 
+    const methodLabel = currentMethod === 'applepay' ? 'Apple Pay 🍎' : (currentMethod === 'googlepay' ? 'Google Pay 🌐' : 'Credit Card 💳');
+
     setTimeout(() => {
       const cart = JSON.parse(localStorage.getItem('pp_cart')) || [];
       const summary = window.cartSummary || { subtotal:0, tax:0, total:0, discountAmount:0, discountCode:null };
       
       const order = {
-        orderId: 'PP-' + Date.now(),
+        orderId: 'PP-' + Date.now().toString().slice(-6),
         items: cart,
         subtotal: summary.subtotal,
         tax: summary.tax,
@@ -166,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
         customerName: name,
         customerEmail: email,
         customerPhone: phone,
+        paymentMethod: methodLabel,
         specialInstructions: instructions
       };
 
