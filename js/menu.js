@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="product-card-price">${priceText}</div>
           </div>
           <div class="product-card-actions">
-            <button class="btn btn-outline btn-full quick-add-btn" data-id="${item.id}" ${item.soldOut ? 'disabled' : ''}>Quick Add</button>
+            <button class="btn btn-primary btn-full order-btn" data-id="${item.id}" ${item.soldOut ? 'disabled' : ''}>Order</button>
           </div>
         `;
 
@@ -176,11 +176,11 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         });
 
-        const quickAddBtn = card.querySelector('.quick-add-btn');
-        if (quickAddBtn) {
-          quickAddBtn.addEventListener('click', (e) => {
+        const orderBtn = card.querySelector('.order-btn');
+        if (orderBtn) {
+          orderBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            quickAdd(item);
+            openProductModal(item.id);
           });
         }
 
