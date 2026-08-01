@@ -59,17 +59,7 @@ body {
   --pp-navbar-blur: 20px;
 }
 
-[data-theme="dark"] {
-  --pp-bg: #0F0F1A;
-  --pp-bg-alt: #1A1A2E;
-  --pp-surface: #16213E;
-  --pp-text: #E8E8E8;
-  --pp-text-secondary: #B0B0B0;
-  --pp-border: #2A2A4A;
-  --pp-shadow: 0 4px 24px rgba(0,0,0,0.3);
-  --pp-shadow-lg: 0 8px 40px rgba(0,0,0,0.4);
-  --pp-navbar-bg: rgba(15,15,26,0.85);
-}
+
 
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
@@ -205,10 +195,7 @@ h1, h2, h3, h4, h5, h6 {
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
-[data-theme="dark"] .card-glass {
-  background-color: rgba(22, 33, 62, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
+
 
 /* Forms */
 .form-group {
@@ -313,9 +300,7 @@ h1, h2, h3, h4, h5, h6 {
 .nav-link:hover {
   background-color: rgba(0,0,0,0.05);
 }
-[data-theme="dark"] .nav-link:hover {
-  background-color: rgba(255,255,255,0.05);
-}
+
 
 .nav-link.active {
   background-color: var(--pp-primary);
@@ -373,18 +358,7 @@ h1, h2, h3, h4, h5, h6 {
   gap: 12px;
 }
 
-.theme-toggle {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1.2rem;
-  padding: 8px;
-  border-radius: 50%;
-  transition: var(--pp-transition);
-}
-.theme-toggle:hover {
-  background-color: rgba(0,0,0,0.05);
-}
+
 
 /* Footer */
 .footer {

@@ -21,33 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- Theme Toggle ---
 function initTheme() {
-  const themeToggleBtn = document.getElementById('themeToggle');
-  const themeIcon = themeToggleBtn?.querySelector('.theme-icon');
-  
-  let currentTheme = localStorage.getItem('pp_theme');
-  if (!currentTheme) {
-    currentTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-  
-  document.documentElement.setAttribute('data-theme', currentTheme);
-  updateThemeIcon(currentTheme, themeIcon);
-  
-  if (themeToggleBtn) {
-    themeToggleBtn.addEventListener('click', () => {
-      currentTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-      document.documentElement.setAttribute('data-theme', currentTheme);
-      localStorage.setItem('pp_theme', currentTheme);
-      updateThemeIcon(currentTheme, themeIcon);
-    });
-  }
+  document.documentElement.setAttribute('data-theme', 'light');
 }
-
-function updateThemeIcon(theme, iconEl) {
-  if (iconEl) {
-    // 🌙 for light mode (meaning 'click for dark'), ☀️ for dark mode
-    iconEl.textContent = theme === 'light' ? '🌙' : '☀️';
-  }
-}
+function updateThemeIcon() {}
 
 // --- Navbar ---
 function initNavbar() {
@@ -461,18 +437,21 @@ function initHomepage() {
 function createProductCard(item) {
   const card = document.createElement('div');
   card.className = 'card card-product';
-  
-  const itemStr = encodeURIComponent(JSON.stringify(item));
+  card.style.cursor = 'pointer';
   
   card.innerHTML = `
     <div class="card-emoji-bg" style="background: linear-gradient(135deg, ${item.gradient})">
       ${item.emoji}
     </div>
     <h3 class="card-title">${item.name}</h3>
-    <div class="card-price">$${item.price}</div>
+    <div class="card-price">$${item.price || (item.prices ? (item.prices.medium || item.prices.single || item.prices.small) : '?')}</div>
     <div class="card-rating">⭐ ${item.rating || '4.9'}</div>
-    <button class="btn btn-primary card-btn" onclick="addToCart('${itemStr}')">Add to Cart</button>
+    <button class="btn btn-primary card-btn">View & Order</button>
   `;
+  
+  card.addEventListener('click', () => {
+    window.location.href = 'menu.html';
+  });
   
   return card;
 }
