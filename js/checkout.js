@@ -182,9 +182,13 @@ document.addEventListener('DOMContentLoaded', () => {
         specialInstructions: instructions
       };
 
-      const orders = JSON.parse(localStorage.getItem('pp_orders')) || [];
-      orders.push(order);
-      localStorage.setItem('pp_orders', JSON.stringify(orders));
+      if (typeof window.saveOrderToFirebase === 'function') {
+        window.saveOrderToFirebase(order);
+      } else {
+        const orders = JSON.parse(localStorage.getItem('pp_orders')) || [];
+        orders.push(order);
+        localStorage.setItem('pp_orders', JSON.stringify(orders));
+      }
       localStorage.setItem('pp_cart', '[]');
       
       window.location.href = `order-confirmation.html?id=${order.orderId}`;

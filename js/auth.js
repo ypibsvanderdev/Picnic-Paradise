@@ -209,35 +209,64 @@ document.addEventListener('DOMContentLoaded', () => {
     const ordersList = document.getElementById('ordersList');
     if (!ordersList) return;
     
-    const allOrders = getStorage('pp_orders') || [];
-    const userOrders = allOrders.filter(o => o.customerEmail === email).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-    
-    if (userOrders.length === 0) {
-      ordersList.innerHTML = `<p style="text-align: center; color: var(--pp-text-secondary); padding: 2rem;">No orders yet. time to plan your picnic!</p>`;
-      return;
-    }
-    
-    ordersList.innerHTML = userOrders.map(order => `
-      <div class="card order-card">
-        <div class="order-header">
-          <div>
-            <h3 style="margin-bottom: 4px;">Order ${order.orderId}</h3>
-            <span class="text-secondary" style="font-size: 0.9rem;">${new Date(order.timestamp).toLocaleString()}</span>
+    const user = getStorage('pp_user');
+    const userName = user ? (user.name || '').toLowerCase().trim() : '';
+    const userEmail = (email || (user ? user.email : '')).toLowerCase().trim();
+
+    const displayOrders = (allOrders) => {
+      const userOrders = (allOrders || []).filter(o => {
+        if (!o) return false;
+        const oEmail = (o.customerEmail || '').toLowerCase().trim();
+        const oName = (o.customerName || '').toLowerCase().trim();
+        return (userEmail && oEmail === userEmail) || (userName && oName === userName);
+      }).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+      
+      if (userOrders.length === 0) {
+        ordersList.innerHTML = `<p style="text-align: center; color: var(--pp-text-secondary); padding: 2rem;">No orders found yet. Time to place your picnic order!</p>`;
+        return;
+      }
+      
+      ordersList.innerHTML = userOrders.map(order => `
+        <div class="card order-card" style="margin-bottom:1rem; padding:1.25rem;">
+          <div class="order-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+            <div>
+              <h3 style="margin-bottom: 4px;">Order #${order.orderId ? order.orderId.replace('PP-','') : ''}</h3>
+              <span class="text-secondary" style="font-size: 0.85rem;">${new Date(order.timestamp).toLocaleString()}</span>
+            </div>
+            <div>
+              <span class="badge" style="background:var(--pp-bg-alt); font-weight:700; text-transform:uppercase;">${(order.status || 'confirmed').toUpperCase()}</span>
+            </div>
           </div>
-          <div>
-            <span class="badge badge-${order.status === 'confirmed' ? 'warning' : order.status === 'ready' ? 'success' : 'primary'}">${order.status.toUpperCase()}</span>
-          </div>
+          <p style="margin-bottom:0.4rem;"><strong>Payment Method:</strong> ${order.paymentMethod || 'Credit Card 💳'}</p>
+          <p style="margin-bottom:0.4rem;"><strong>Total Paid:</strong> ${formatCurrency(order.total || 0)} (${order.items ? order.items.length : 0} items)</p>
+          <p style="margin-bottom:0.75rem;"><strong>Pickup Time:</strong> ${order.pickupTime || '12:00 PM'}</p>
+          <details style="margin-top: 0.75rem; background:var(--pp-bg-alt); padding:0.75rem; border-radius:8px;">
+            <summary style="cursor: pointer; color: var(--pp-primary-dark); font-weight: 600;">View Order Items (${order.items ? order.items.length : 0})</summary>
+            <ul style="margin-top: 0.5rem; list-style: none; padding-left: 0;">
+              ${(order.items || []).map(i => {
+                let addIns = '';
+                if (i.addIns && i.addIns.length > 0) {
+                  const names = i.addIns.map(a => typeof a === 'string' ? a : (a.name || a)).join(', ');
+                  addIns = `<div style="font-size:0.75rem; color:var(--pp-primary-dark);">+ ${names}</div>`;
+                }
+                return `<li style="padding: 6px 0; border-bottom: 1px solid var(--pp-border);">
+                  <strong>${i.quantity}x ${i.name}</strong> <small>(${i.size || 'single'}${i.flavor ? ' - ' + i.flavor : ''})</small>
+                  ${addIns}
+                </li>`;
+              }).join('')}
+            </ul>
+          </details>
         </div>
-        <p><strong>Total:</strong> ${formatCurrency(order.total)} (${order.items.length} items)</p>
-        <p><strong>Pickup:</strong> ${order.pickupTime}</p>
-        <details style="margin-top: 1rem;">
-          <summary style="cursor: pointer; color: var(--pp-primary); font-weight: 500;">View Details</summary>
-          <ul style="margin-top: 0.5rem; list-style: none; padding-left: 0;">
-            ${order.items.map(i => `<li style="padding: 4px 0; border-bottom: 1px solid var(--pp-border);">${i.quantity}x ${i.name} (${i.size}) - ${formatCurrency(i.unitPrice * i.quantity)}</li>`).join('')}
-          </ul>
-        </details>
-      </div>
-    `).join('');
+      `).join('');
+    };
+
+    if (typeof window.listenToFirebaseOrders === 'function') {
+      window.listenToFirebaseOrders((orders) => {
+        displayOrders(orders);
+      });
+    } else {
+      displayOrders(getStorage('pp_orders') || []);
+    }
   }
 
   function renderFavorites() {

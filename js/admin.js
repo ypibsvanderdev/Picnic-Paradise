@@ -133,9 +133,19 @@ document.addEventListener('DOMContentLoaded', () => {
       dateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
     }
 
-    renderDashboard();
+    // Subscribe to Firebase Realtime Orders
+    if (typeof window.listenToFirebaseOrders === 'function') {
+      window.listenToFirebaseOrders((orders) => {
+        window.currentAdminOrders = orders;
+        renderDashboardWithOrders(orders);
+        renderCustomersWithOrders(orders);
+      });
+    } else {
+      renderDashboard();
+      renderCustomers();
+    }
+
     renderMenuTable();
-    renderCustomers();
     setupSettings();
   }
 
@@ -153,13 +163,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Dashboard & Orders ---
   function renderDashboard() {
-    const orders = PPUtils.getStorage('pp_orders') || [];
-    
+    const orders = window.currentAdminOrders || PPUtils.getStorage('pp_orders') || [];
+    renderDashboardWithOrders(orders);
+  }
+
+  function renderDashboardWithOrders(orders) {
     let totalRev = 0;
     let itemsSold = 0;
     let payCounts = { card: 0, apple: 0, google: 0 };
     
-    orders.forEach(o => {
+    (orders || []).forEach(o => {
+      if (!o) return;
       totalRev += (o.total || 0);
       if (o.items && Array.isArray(o.items)) {
         itemsSold += o.items.reduce((acc, item) => acc + (item.quantity || 1), 0);
@@ -175,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const elSold = document.getElementById('statItemsSold');
     const elPay = document.getElementById('statPaymentMethods');
 
-    if (elOrders) elOrders.textContent = orders.length;
+    if (elOrders) elOrders.textContent = (orders || []).length;
     if (elRev) elRev.textContent = PPUtils.formatCurrency(totalRev);
     if (elSold) elSold.textContent = itemsSold;
     if (elPay) {
@@ -248,13 +262,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.changeOrderStatus = function(orderId, newStatus) {
-    let orders = PPUtils.getStorage('pp_orders') || [];
-    const idx = orders.findIndex(o => o.orderId === orderId);
-    if (idx !== -1) {
-      orders[idx].status = newStatus;
-      PPUtils.setStorage('pp_orders', orders);
-      renderDashboard();
+    if (typeof window.updateOrderStatusInFirebase === 'function') {
+      window.updateOrderStatusInFirebase(orderId, newStatus);
+    } else {
+      let orders = PPUtils.getStorage('pp_orders') || [];
+      const idx = orders.findIndex(o => o.orderId === orderId);
+      if (idx !== -1) {
+        orders[idx].status = newStatus;
+        PPUtils.setStorage('pp_orders', orders);
+      }
     }
+    renderDashboard();
   };
 
   // --- Menu Management ---
@@ -298,13 +316,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Customers ---
   function renderCustomers() {
-    const orders = PPUtils.getStorage('pp_orders') || [];
+    const orders = window.currentAdminOrders || PPUtils.getStorage('pp_orders') || [];
+    renderCustomersWithOrders(orders);
+  }
+
+  function renderCustomersWithOrders(orders) {
     let customersMap = {};
     
-    orders.forEach(o => {
-      const email = o.customerEmail || o.customerName || 'Guest';
-      if (!customersMap[email]) {
-        customersMap[email] = {
+    (orders || []).forEach(o => {
+      if (!o) return;
+      const key = o.customerEmail || o.customerName || 'Guest';
+      if (!customersMap[key]) {
+        customersMap[key] = {
           name: o.customerName || 'Guest',
           email: o.customerEmail || '-',
           phone: o.customerPhone || '-',
@@ -312,8 +335,8 @@ document.addEventListener('DOMContentLoaded', () => {
           totalSpent: 0
         };
       }
-      customersMap[email].ordersCount++;
-      customersMap[email].totalSpent += (o.total || 0);
+      customersMap[key].ordersCount++;
+      customersMap[key].totalSpent += (o.total || 0);
     });
     
     const tbody = document.getElementById('customersTable');
@@ -330,7 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td><strong style="color:#fff;">${c.name}</strong></td>
         <td style="color:var(--dash-muted);">${c.email}</td>
         <td style="color:var(--dash-muted);">${c.phone}</td>
-        <td><strong>${c.ordersCount}</strong></td>
+        <td><strong style="color:#fff;">${c.ordersCount}</strong></td>
         <td><strong style="color:var(--dash-primary);">${PPUtils.formatCurrency(c.totalSpent)}</strong></td>
       </tr>
     `).join('');

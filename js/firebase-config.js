@@ -1,5 +1,5 @@
 /**
- * Picnic Paradise - Firebase Authentication Config & Helpers
+ * Picnic Paradise - Firebase Authentication & Firestore Realtime Sync
  */
 
 // Your web app's Firebase configuration
@@ -13,11 +13,15 @@ const firebaseConfig = {
   measurementId: "G-8P12T6JX6B"
 };
 
-// Initialize Firebase App & Auth if SDK exists
+// Initialize Firebase App & Firestore if SDK exists
+let db = null;
 if (typeof firebase !== 'undefined') {
   try {
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
+    }
+    if (firebase.firestore) {
+      db = firebase.firestore();
     }
   } catch (e) {
     console.warn('Firebase init warning:', e);
@@ -25,10 +29,81 @@ if (typeof firebase !== 'undefined') {
 }
 
 /**
+ * Save order to both LocalStorage AND Firebase Firestore for instant admin sync
+ */
+window.saveOrderToFirebase = async function(orderObj) {
+  // Always save to localStorage first
+  const orders = JSON.parse(localStorage.getItem('pp_orders')) || [];
+  const idx = orders.findIndex(o => o.orderId === orderObj.orderId);
+  if (idx !== -1) orders[idx] = orderObj;
+  else orders.push(orderObj);
+  localStorage.setItem('pp_orders', JSON.stringify(orders));
+
+  // Push to Cloud Firestore if connected
+  if (db) {
+    try {
+      await db.collection('orders').doc(orderObj.orderId).set(orderObj);
+    } catch (e) {
+      console.warn('Firestore order save notice:', e);
+    }
+  }
+};
+
+/**
+ * Real-time Firebase Orders Listener for Admin Dashboard & Customer Order History
+ */
+window.listenToFirebaseOrders = function(callback) {
+  if (db) {
+    try {
+      return db.collection('orders').onSnapshot((snapshot) => {
+        const cloudOrders = [];
+        snapshot.forEach(doc => cloudOrders.push(doc.data()));
+        if (cloudOrders.length > 0) {
+          const localOrders = JSON.parse(localStorage.getItem('pp_orders')) || [];
+          const map = {};
+          localOrders.forEach(o => { if (o && o.orderId) map[o.orderId] = o; });
+          cloudOrders.forEach(o => { if (o && o.orderId) map[o.orderId] = o; });
+          const merged = Object.values(map);
+          localStorage.setItem('pp_orders', JSON.stringify(merged));
+          callback(merged);
+          return;
+        }
+        callback(JSON.parse(localStorage.getItem('pp_orders')) || []);
+      }, (err) => {
+        console.warn('Firestore listener fallback to localStorage:', err);
+        callback(JSON.parse(localStorage.getItem('pp_orders')) || []);
+      });
+    } catch (e) {
+      console.warn('Firestore listener exception:', e);
+    }
+  }
+  callback(JSON.parse(localStorage.getItem('pp_orders')) || []);
+};
+
+/**
+ * Update order status in Firebase Firestore
+ */
+window.updateOrderStatusInFirebase = async function(orderId, newStatus) {
+  const orders = JSON.parse(localStorage.getItem('pp_orders')) || [];
+  const idx = orders.findIndex(o => o.orderId === orderId);
+  if (idx !== -1) {
+    orders[idx].status = newStatus;
+    localStorage.setItem('pp_orders', JSON.stringify(orders));
+  }
+
+  if (db) {
+    try {
+      await db.collection('orders').doc(orderId).update({ status: newStatus });
+    } catch (e) {
+      console.warn('Firestore status update notice:', e);
+    }
+  }
+};
+
+/**
  * Perform Google / Gmail Login with Popup + Instant Account Picker Fallback
  */
 window.signInWithGoogle = async function() {
-  // Try real Firebase popup first
   if (typeof firebase !== 'undefined' && firebase.auth) {
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
@@ -46,7 +121,6 @@ window.signInWithGoogle = async function() {
     }
   }
   
-  // Instant Fail-safe Google Account Picker Modal
   return new Promise((resolve) => {
     let existingModal = document.getElementById('googleAuthModal');
     if (existingModal) existingModal.remove();
