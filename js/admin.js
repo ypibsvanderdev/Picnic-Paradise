@@ -31,10 +31,64 @@ function setLocalOrders(orders) {
   }
 }
 
-let currentOrderFilter = 'all';
+let isSoundEnabled = localStorage.getItem('pp_admin_sound') !== 'false';
+let knownOrderIds = new Set();
+window.adminSearchQuery = '';
+
+function playOrderChime() {
+  if (!isSoundEnabled) return;
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    
+    // Tone 1 (E5)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(659.25, ctx.currentTime);
+    gain1.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + 0.35);
+    
+    // Tone 2 (B5)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(987.77, ctx.currentTime + 0.15);
+    gain2.gain.setValueAtTime(0.3, ctx.currentTime + 0.15);
+    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(ctx.currentTime + 0.15);
+    osc2.stop(ctx.currentTime + 0.6);
+  } catch(e) {}
+}
+
+function updateSoundButton() {
+  const btn = document.getElementById('btnToggleSound');
+  if (btn) {
+    btn.textContent = isSoundEnabled ? '🔔 Sound: ON' : '🔕 Sound: OFF';
+    btn.style.borderColor = isSoundEnabled ? 'var(--dash-green)' : 'var(--dash-border)';
+  }
+}
 
 // Top-Level Event Delegation for Sidebar Nav Tabs, Filters, and Action Buttons
 document.addEventListener('click', (e) => {
+  // Sound Toggle
+  const soundBtn = e.target.closest('#btnToggleSound');
+  if (soundBtn) {
+    e.preventDefault();
+    isSoundEnabled = !isSoundEnabled;
+    localStorage.setItem('pp_admin_sound', isSoundEnabled ? 'true' : 'false');
+    updateSoundButton();
+    if (isSoundEnabled) playOrderChime();
+    return;
+  }
+
   // Sidebar Section Nav Tab
   const navBtn = e.target.closest('.sb-link[data-target]');
   if (navBtn) {
@@ -85,6 +139,47 @@ document.addEventListener('click', (e) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  updateSoundButton();
+
+  // Search input live handler
+  const searchInput = document.getElementById('adminOrderSearch');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      window.adminSearchQuery = e.target.value.toLowerCase().trim();
+      renderDashboard();
+    });
+  }
+
+  // Promo Code Form Submit
+  const promoForm = document.getElementById('addPromoForm');
+  if (promoForm) {
+    promoForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const codeInput = document.getElementById('promoCodeInput');
+      const discountInput = document.getElementById('promoDiscountInput');
+      if (!codeInput || !discountInput) return;
+
+      const code = codeInput.value.trim().toUpperCase();
+      const discount = parseInt(discountInput.value, 10);
+      if (!code || isNaN(discount) || discount < 1 || discount > 100) return;
+
+      let codes = getPromoCodes();
+      const idx = codes.findIndex(c => c.code === code);
+      if (idx !== -1) {
+        codes[idx].discount = discount;
+      } else {
+        codes.push({ code, discount });
+      }
+
+      setPromoCodes(codes);
+      renderPromoCodesTable();
+
+      codeInput.value = '';
+      discountInput.value = '';
+      alert(`Promo code "${code}" (${discount}% OFF) created successfully!`);
+    });
+  }
+
   try {
     const adminLogin = document.getElementById('adminLogin');
     const adminDashboard = document.getElementById('adminDashboard');
@@ -106,68 +201,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (adminLogin) adminLogin.style.display = 'none';
       if (adminDashboard) adminDashboard.style.setProperty('display', 'flex', 'important');
       initAdmin(currentUser || 'Admin');
-    }
-
-    // Password Login
-    if (adminLoginForm) {
-      adminLoginForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const user = document.getElementById('adminUser').value.trim();
-        const pass = document.getElementById('adminPass').value;
-        const err = document.getElementById('adminLoginError');
-        
-        const validUsers = ['admin', 'yahiamoon13@gmail.com', 'meqdad@gmail.com'];
-        const storedPass = localStorage.getItem('pp_admin_pass');
-        
-        const isPassValid = (pass === 'Eman165*' || pass === 'picnic2026' || (storedPass && pass === storedPass));
-        const isUserValid = validUsers.includes(user.toLowerCase());
-
-        if (isUserValid && isPassValid) {
-          sessionStorage.setItem('pp_admin_logged_in', 'true');
-          sessionStorage.setItem('pp_admin_user', user);
-          localStorage.setItem('pp_user', JSON.stringify({
-            id: 'u_' + Date.now(),
-            name: user.split('@')[0],
-            email: user,
-            isAdmin: true
-          }));
-          window.location.reload();
-        } else {
-          if (err) {
-            err.textContent = 'Invalid username or password. (Default password: Eman165*)';
-            err.style.display = 'block';
-          }
-        }
-      });
-    }
-
-    // Google Sign-In Handler
-    const googleAdminBtn = document.getElementById('googleAdminBtn');
-    if (googleAdminBtn) {
-      googleAdminBtn.addEventListener('click', async () => {
-        const err = document.getElementById('adminLoginError');
-        if (err) err.style.display = 'none';
-        
-        try {
-          if (typeof window.signInWithGoogle === 'function') {
-            const user = await window.signInWithGoogle();
-            if (user && user.email) {
-              sessionStorage.setItem('pp_admin_logged_in', 'true');
-              sessionStorage.setItem('pp_admin_user', user.email);
-              localStorage.setItem('pp_user', JSON.stringify({
-                id: user.uid || ('u_' + Date.now()),
-                name: user.name || user.email.split('@')[0],
-                email: user.email,
-                photoURL: user.photoURL || null,
-                isAdmin: true
-              }));
-              window.location.reload();
-            }
-          }
-        } catch (error) {
-          console.warn('Google Sign-In notice:', error);
-        }
-      });
     }
   } catch (err) {
     console.error('Error during DOMContentLoaded admin setup:', err);
@@ -218,6 +251,16 @@ function renderDashboard() {
 
 function renderDashboardWithOrders(orders) {
   try {
+    // Check for new orders to play chime
+    let hasNewOrder = false;
+    (orders || []).forEach(o => {
+      if (o && o.orderId && !knownOrderIds.has(o.orderId)) {
+        if (knownOrderIds.size > 0) hasNewOrder = true;
+        knownOrderIds.add(o.orderId);
+      }
+    });
+    if (hasNewOrder) playOrderChime();
+
     let totalRev = 0;
     let itemsSold = 0;
     let payCounts = { card: 0, apple: 0, google: 0 };
@@ -246,10 +289,51 @@ function renderDashboardWithOrders(orders) {
       elPay.innerHTML = `💳 ${payCounts.card} | 🍎 ${payCounts.apple} | 🌐 ${payCounts.google}`;
     }
     
+    renderTopSellingItems(orders);
     renderOrdersTable(orders);
   } catch(e) {
     console.error("Error rendering dashboard:", e);
   }
+}
+
+function renderTopSellingItems(orders) {
+  const container = document.getElementById('topSellingContainer');
+  if (!container) return;
+
+  let itemCounts = {};
+  let itemTotalSold = 0;
+
+  (orders || []).forEach(o => {
+    if (o && Array.isArray(o.items)) {
+      o.items.forEach(i => {
+        const name = i.name || 'Unknown Item';
+        const qty = i.quantity || 1;
+        itemCounts[name] = (itemCounts[name] || 0) + qty;
+        itemTotalSold += qty;
+      });
+    }
+  });
+
+  const sorted = Object.entries(itemCounts).sort((a,b) => b[1] - a[1]);
+  if (sorted.length === 0) {
+    container.innerHTML = `<p style="color:var(--dash-muted); font-size:0.9rem;">No sales data yet.</p>`;
+    return;
+  }
+
+  container.innerHTML = sorted.slice(0, 5).map(([name, count]) => {
+    const percent = itemTotalSold > 0 ? Math.round((count / itemTotalSold) * 100) : 0;
+    return `
+      <div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:0.9rem;">
+          <strong style="color:#fff;">${name}</strong>
+          <span style="color:var(--dash-primary); font-weight:700;">${count} sold (${percent}%)</span>
+        </div>
+        <div style="background:var(--dash-card2); height:8px; border-radius:4px; overflow:hidden;">
+          <div style="background:var(--dash-primary); height:100%; width:${percent}%; transition:width 0.3s ease;"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function formatOrderItemsHtml(items) {
@@ -281,6 +365,18 @@ function renderOrdersTable(orders) {
   let filteredOrders = orders || [];
   if (currentOrderFilter !== 'all') {
     filteredOrders = (orders || []).filter(o => o && o.status === currentOrderFilter);
+  }
+
+  if (window.adminSearchQuery) {
+    const q = window.adminSearchQuery;
+    filteredOrders = filteredOrders.filter(o => {
+      if (!o) return false;
+      const id = (o.orderId || '').toLowerCase();
+      const name = (o.customerName || '').toLowerCase();
+      const email = (o.customerEmail || '').toLowerCase();
+      const phone = (o.customerPhone || '').toLowerCase();
+      return id.includes(q) || name.includes(q) || email.includes(q) || phone.includes(q);
+    });
   }
 
   filteredOrders = [...filteredOrders].sort((a,b) => new Date(b.timestamp || Date.now()) - new Date(a.timestamp || Date.now()));
@@ -457,8 +553,58 @@ function renderCustomersWithOrders(orders) {
   `).join('');
 }
 
+function getPromoCodes() {
+  try {
+    const raw = localStorage.getItem('pp_promo_codes');
+    return raw ? JSON.parse(raw) : [
+      { code: 'PICNIC10', discount: 10 },
+      { code: 'SUMMER20', discount: 20 },
+      { code: 'FIRSTORDER', discount: 15 }
+    ];
+  } catch(e) {
+    return [
+      { code: 'PICNIC10', discount: 10 },
+      { code: 'SUMMER20', discount: 20 },
+      { code: 'FIRSTORDER', discount: 15 }
+    ];
+  }
+}
+
+function setPromoCodes(codes) {
+  try {
+    localStorage.setItem('pp_promo_codes', JSON.stringify(codes));
+  } catch(e) {}
+}
+
+function renderPromoCodesTable() {
+  const tbody = document.getElementById('promoCodesTable');
+  if (!tbody) return;
+  const codes = getPromoCodes();
+  if (codes.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="3" style="color:var(--dash-muted); padding:1rem; text-align:center;">No promo codes created yet.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = codes.map(c => `
+    <tr>
+      <td><strong style="color:var(--dash-primary); font-size:0.95rem;">${c.code}</strong></td>
+      <td><span style="background:var(--dash-card2); color:#fff; padding:3px 8px; border-radius:4px; font-weight:700;">${c.discount}% OFF</span></td>
+      <td>
+        <button type="button" class="btn btn-sm btn-outline" style="padding:3px 8px; font-size:0.8rem; color:var(--dash-red); border-color:rgba(239,68,68,0.3);" onclick="window.deletePromoCode('${c.code}')">🗑️ Remove</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+window.deletePromoCode = function(code) {
+  let codes = getPromoCodes().filter(c => c.code !== code);
+  setPromoCodes(codes);
+  renderPromoCodesTable();
+};
+
 // --- Settings ---
 function setupSettings() {
+  renderPromoCodesTable();
+
   const btnExport = document.getElementById('btnExportCSV');
   const btnClear = document.getElementById('btnClearData');
 
@@ -499,7 +645,7 @@ function setupSettings() {
     btnClear.dataset.bound = "true";
     btnClear.addEventListener('click', () => {
       if(confirm("WARNING: This will clear all orders and settings. Are you sure?")) {
-        const keys = ['pp_orders', 'pp_user', 'pp_cart', 'pp_menu_overrides'];
+        const keys = ['pp_orders', 'pp_user', 'pp_cart', 'pp_menu_overrides', 'pp_promo_codes'];
         keys.forEach(k => localStorage.removeItem(k));
         alert("All data cleared. Reloading...");
         window.location.reload();

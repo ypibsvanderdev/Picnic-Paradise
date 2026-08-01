@@ -81,8 +81,9 @@
           <h1>Dashboard</h1>
           <p id="dashGreeting">Welcome back, Admin!</p>
         </div>
-        <div class="dash-header-right" id="dashDate">
-          Aug 1, 2026
+        <div class="dash-header-right" style="display:flex; align-items:center; gap:12px;">
+          <button type="button" id="btnToggleSound" style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border); padding:6px 12px; border-radius:8px; font-weight:600; font-size:0.85rem; cursor:pointer;">🔔 Sound: ON</button>
+          <span id="dashDate" style="color:var(--dash-muted); font-size:0.9rem;">Aug 1, 2026</span>
         </div>
       </header>
 
@@ -108,17 +109,28 @@
           </div>
         </div>
 
+        <!-- TOP SELLING ANALYTICS CARD -->
+        <div class="admin-card" style="margin-bottom:24px;">
+          <h3 style="font-family:'Outfit',sans-serif; font-size:1.2rem; margin-bottom:16px; display:flex; align-items:center; gap:8px;">🔥 Top Selling Items</h3>
+          <div id="topSellingContainer" style="display:flex; flex-direction:column; gap:12px;">
+            <p style="color:var(--dash-muted); font-size:0.9rem;">No sales data yet.</p>
+          </div>
+        </div>
+
         <!-- ORDERS CARD -->
         <div class="admin-card">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
             <h3 style="font-family:'Outfit',sans-serif; font-size:1.3rem;">🧾 Customer Orders</h3>
-            <div class="filter-tabs" id="ordersFilterTabs" style="margin-bottom:0;">
-              <div class="filter-tab active" data-filter="all">All</div>
-              <div class="filter-tab" data-filter="pending">Pending</div>
-              <div class="filter-tab" data-filter="confirmed">Confirmed</div>
-              <div class="filter-tab" data-filter="preparing">Preparing</div>
-              <div class="filter-tab" data-filter="ready">Ready</div>
-              <div class="filter-tab" data-filter="picked-up">Picked Up</div>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <input type="text" id="adminOrderSearch" placeholder="🔍 Search Order ID or Name..." style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border); padding:6px 12px; border-radius:6px; font-size:0.85rem; width:220px;">
+              <div class="filter-tabs" id="ordersFilterTabs" style="margin-bottom:0;">
+                <div class="filter-tab active" data-filter="all">All</div>
+                <div class="filter-tab" data-filter="pending">Pending</div>
+                <div class="filter-tab" data-filter="confirmed">Confirmed</div>
+                <div class="filter-tab" data-filter="preparing">Preparing</div>
+                <div class="filter-tab" data-filter="ready">Ready</div>
+                <div class="filter-tab" data-filter="picked-up">Picked Up</div>
+              </div>
             </div>
           </div>
 
@@ -147,18 +159,18 @@
       <!-- MENU SECTION -->
       <section id="section-menu" class="admin-section">
         <div class="dash-header">
-          <h2>Menu Management</h2>
+          <h2>Menu Items</h2>
         </div>
         <div class="admin-card">
           <div class="admin-table-container">
             <table class="admin-table">
               <thead>
                 <tr>
-                  <th>Emoji</th>
+                  <th>Item</th>
                   <th>Name</th>
                   <th>Category</th>
                   <th>Base Price</th>
-                  <th>Sold Out</th>
+                  <th>Status</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -173,7 +185,7 @@
       <!-- CUSTOMERS SECTION -->
       <section id="section-customers" class="admin-section">
         <div class="dash-header">
-          <h2>Customer Directory</h2>
+          <h2>Customers</h2>
         </div>
         <div class="admin-card">
           <div class="admin-table-container">
@@ -183,7 +195,7 @@
                   <th>Customer Name</th>
                   <th>Email</th>
                   <th>Phone</th>
-                  <th>Orders Count</th>
+                  <th>Orders</th>
                   <th>Total Spent</th>
                 </tr>
               </thead>
@@ -200,8 +212,36 @@
         <div class="dash-header">
           <h2>Settings</h2>
         </div>
-        <div class="admin-card" style="max-width:600px;">
-          <h3 style="margin-bottom:12px;">Export & Security</h3>
+        
+        <!-- PROMO CODE MANAGER -->
+        <div class="admin-card" style="max-width:650px; margin-bottom:24px;">
+          <h3 style="margin-bottom:12px; font-family:'Outfit',sans-serif;">🏷️ Custom Promo & Discount Codes</h3>
+          <p style="color:var(--dash-muted); margin-bottom:16px; font-size:0.9rem;">Create custom discount codes that your customers can use at checkout.</p>
+          
+          <form id="addPromoForm" style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
+            <input type="text" id="promoCodeInput" placeholder="Code (e.g. SUMMER20)" style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border); padding:8px 12px; border-radius:6px; flex:1; min-width:140px; text-transform:uppercase;" required>
+            <input type="number" id="promoDiscountInput" placeholder="Discount %" min="1" max="100" style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border); padding:8px 12px; border-radius:6px; width:110px;" required>
+            <button type="submit" class="btn btn-primary" style="padding:8px 16px; font-size:0.85rem;">+ Create Code</button>
+          </form>
+
+          <div class="admin-table-container">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Promo Code</th>
+                  <th>Discount</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="promoCodesTable">
+                <!-- JS Populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="admin-card" style="max-width:650px;">
+          <h3 style="margin-bottom:12px; font-family:'Outfit',sans-serif;">Export & Security</h3>
           <p style="color:var(--dash-muted); margin-bottom:16px; font-size:0.9rem;">Download backup orders data or update password.</p>
           <div style="display:flex; gap:12px; flex-wrap:wrap;">
             <button type="button" class="btn btn-outline" id="btnExportCSV">📥 Export Orders (CSV)</button>

@@ -230,9 +230,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const code = discountCodeInput.value.trim().toUpperCase();
       if (!code) return;
 
+      let rate = 0;
       if (DISCOUNT_CODES[code]) {
-        currentDiscount = { code: code, rate: DISCOUNT_CODES[code] };
-        discountMessage.innerHTML = `<span style="color: var(--pp-green-dark)">✓ Discount applied! (-${DISCOUNT_CODES[code]*100}%)</span>`;
+        rate = DISCOUNT_CODES[code];
+      } else {
+        try {
+          const customCodes = JSON.parse(localStorage.getItem('pp_promo_codes')) || [];
+          const match = customCodes.find(c => c.code.toUpperCase() === code);
+          if (match && match.discount) {
+            rate = match.discount / 100;
+          }
+        } catch(e) {}
+      }
+
+      if (rate > 0) {
+        currentDiscount = { code: code, rate: rate };
+        discountMessage.innerHTML = `<span style="color: var(--pp-green-dark)">✓ Discount applied! (-${Math.round(rate * 100)}%)</span>`;
         discountMessage.style.animation = 'none';
         renderOrderSummary();
       } else {
