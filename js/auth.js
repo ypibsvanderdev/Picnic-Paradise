@@ -47,33 +47,29 @@ document.addEventListener('DOMContentLoaded', () => {
   if (googleCustomerBtn) {
     googleCustomerBtn.addEventListener('click', async () => {
       try {
-        if (typeof window.signInWithGoogle === 'function' && typeof firebase !== 'undefined' && firebase.auth) {
+        if (typeof window.signInWithGoogle === 'function') {
           const gUser = await window.signInWithGoogle();
-          const userObj = {
-            id: 'u_' + Date.now(),
-            name: gUser.name,
-            email: gUser.email,
-            phone: '',
-            provider: 'google',
-            photoURL: gUser.photoURL,
-            createdAt: new Date().toISOString()
-          };
-          setStorage('pp_user', userObj);
-          updateViewState();
-          if (typeof showToast === 'function') showToast(`Welcome, ${userObj.name}!`, 'success');
-        } else {
-          const email = prompt('Enter your Gmail address:', 'customer@gmail.com');
-          if (email) {
+          if (gUser && gUser.email) {
+            const adminEmails = ['admin', 'yahiamoon13@gmail.com', 'meqdad@gmail.com'];
+            const isAdmin = adminEmails.includes(gUser.email.toLowerCase().trim());
+            
             const userObj = {
-              id: 'u_' + Date.now(),
-              name: email.split('@')[0],
-              email: email,
+              id: gUser.uid || ('u_' + Date.now()),
+              name: gUser.name || gUser.email.split('@')[0],
+              email: gUser.email,
               phone: '',
               provider: 'google',
+              photoURL: gUser.photoURL || null,
+              isAdmin: isAdmin,
               createdAt: new Date().toISOString()
             };
+            
             setStorage('pp_user', userObj);
-            updateViewState();
+            if (isAdmin) {
+              sessionStorage.setItem('pp_admin_logged_in', 'true');
+              sessionStorage.setItem('pp_admin_user', gUser.email);
+            }
+            window.location.reload();
           }
         }
       } catch (err) {

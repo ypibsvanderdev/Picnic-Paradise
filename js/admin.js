@@ -28,6 +28,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isUserValid && isPassValid) {
       sessionStorage.setItem('pp_admin_logged_in', 'true');
       sessionStorage.setItem('pp_admin_user', user);
+      localStorage.setItem('pp_user', JSON.stringify({
+        id: 'u_' + Date.now(),
+        name: user.split('@')[0],
+        email: user,
+        isAdmin: true
+      }));
       window.location.reload();
     } else {
       err.textContent = 'Invalid username or password. (Default password: Eman165*)';
@@ -48,6 +54,13 @@ document.addEventListener('DOMContentLoaded', () => {
           if (user && user.email) {
             sessionStorage.setItem('pp_admin_logged_in', 'true');
             sessionStorage.setItem('pp_admin_user', user.email);
+            localStorage.setItem('pp_user', JSON.stringify({
+              id: user.uid || ('u_' + Date.now()),
+              name: user.name || user.email.split('@')[0],
+              email: user.email,
+              photoURL: user.photoURL || null,
+              isAdmin: true
+            }));
             window.location.reload();
           }
         }
