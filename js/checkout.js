@@ -182,17 +182,20 @@ document.addEventListener('DOMContentLoaded', () => {
         specialInstructions: instructions
       };
 
-      if (typeof window.saveOrderToFirebase === 'function') {
-        window.saveOrderToFirebase(order);
+      if (typeof window.processStripeCheckout === 'function') {
+        window.processStripeCheckout(order);
       } else {
-        const orders = JSON.parse(localStorage.getItem('pp_orders')) || [];
-        orders.push(order);
-        localStorage.setItem('pp_orders', JSON.stringify(orders));
+        if (typeof window.saveOrderToFirebase === 'function') {
+          window.saveOrderToFirebase(order);
+        } else {
+          const orders = JSON.parse(localStorage.getItem('pp_orders')) || [];
+          orders.push(order);
+          localStorage.setItem('pp_orders', JSON.stringify(orders));
+        }
+        localStorage.setItem('pp_cart', '[]');
+        window.location.href = `order-confirmation.html?id=${order.orderId}`;
       }
-      localStorage.setItem('pp_cart', '[]');
-      
-      window.location.href = `order-confirmation.html?id=${order.orderId}`;
-    }, 2000);
+    }, 1500);
   }
 
   if(placeOrderBtn) placeOrderBtn.addEventListener('click', processPayment);
