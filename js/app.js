@@ -82,6 +82,97 @@ function initNavbar() {
       });
     });
   }
+
+  // Render User Profile Badge / Dropdown in Navbar
+  renderNavUserProfile();
+}
+
+function renderNavUserProfile() {
+  const isAdminLoggedIn = sessionStorage.getItem('pp_admin_logged_in') === 'true';
+  const adminUserEmail = sessionStorage.getItem('pp_admin_user') || 'admin';
+  let customerUser = null;
+  try {
+    customerUser = JSON.parse(localStorage.getItem('pp_user'));
+  } catch (e) {}
+
+  const isLoggedIn = isAdminLoggedIn || !!customerUser;
+  if (!isLoggedIn) return;
+
+  const email = isAdminLoggedIn ? adminUserEmail : (customerUser ? customerUser.email : '');
+  let name = customerUser ? (customerUser.name || customerUser.email.split('@')[0]) : (isAdminLoggedIn ? (adminUserEmail.split('@')[0] || 'Admin') : 'User');
+  name = name.charAt(0).toUpperCase() + name.slice(1);
+  const initial = name.charAt(0).toUpperCase();
+
+  const adminEmails = ['admin', 'yahiamoon13@gmail.com', 'meqdad@gmail.com'];
+  const isUserAdmin = isAdminLoggedIn || (email && adminEmails.includes(email.toLowerCase().trim()));
+
+  // Find account link to replace
+  const accountLink = document.querySelector('a[data-page="account"]') || document.querySelector('a[href="account.html"]');
+  if (accountLink) {
+    const dropdownDiv = document.createElement('div');
+    dropdownDiv.className = 'nav-user-dropdown';
+    dropdownDiv.style.cssText = 'position: relative; display: inline-block; margin-left: 8px; vertical-align: middle;';
+
+    dropdownDiv.innerHTML = `
+      <button type="button" id="navUserBtn" style="display:flex; align-items:center; gap:8px; background:linear-gradient(135deg, rgba(78,205,196,0.15), rgba(255,230,109,0.2)); border:1.5px solid var(--pp-primary); padding:6px 14px; border-radius:20px; cursor:pointer; font-weight:600; font-family:'Outfit',sans-serif; color:var(--pp-text); transition:all 0.2s;">
+        <span style="width:24px; height:24px; border-radius:50%; background:var(--pp-primary); color:white; display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:bold;">${initial}</span>
+        <span>${name}</span>
+        <span style="font-size:0.65rem; opacity:0.7;">▼</span>
+      </button>
+      
+      <div id="navUserMenu" style="display:none; position:absolute; right:0; top:calc(100% + 8px); background:var(--pp-surface); border-radius:12px; box-shadow:var(--pp-shadow-lg); min-width:210px; padding:8px 0; z-index:99999; border:1px solid var(--pp-border); text-align:left;">
+        <div style="padding:10px 16px; border-bottom:1px solid var(--pp-border); font-size:0.8rem; color:var(--pp-text-secondary);">
+          Signed in as<br><strong style="color:var(--pp-text); font-size:0.85rem; word-break:break-all;">${email || name}</strong>
+        </div>
+        
+        ${isUserAdmin ? `
+          <a href="admin.html" style="display:flex; align-items:center; gap:8px; padding:10px 16px; color:var(--pp-primary-dark); text-decoration:none; font-weight:700; font-size:0.9rem; transition:background 0.2s;" onmouseover="this.style.background='var(--pp-bg-alt)'" onmouseout="this.style.background='transparent'">
+            ⚙️ Admin Dashboard
+          </a>
+        ` : ''}
+        
+        <a href="account.html" style="display:flex; align-items:center; gap:8px; padding:10px 16px; color:var(--pp-text); text-decoration:none; font-size:0.9rem; transition:background 0.2s;" onmouseover="this.style.background='var(--pp-bg-alt)'" onmouseout="this.style.background='transparent'">
+          👤 My Account
+        </a>
+        
+        <div style="border-top:1px solid var(--pp-border); margin:4px 0;"></div>
+        
+        <button id="globalSignOutBtn" type="button" style="width:100%; text-align:left; display:flex; align-items:center; gap:8px; padding:10px 16px; color:var(--pp-accent); background:transparent; border:none; font-weight:600; font-size:0.9rem; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='rgba(255,107,107,0.1)'" onmouseout="this.style.background='transparent'">
+          🚪 Sign Out
+        </button>
+      </div>
+    `;
+
+    accountLink.parentNode.replaceChild(dropdownDiv, accountLink);
+
+    const userBtn = document.getElementById('navUserBtn');
+    const userMenu = document.getElementById('navUserMenu');
+    const signOutBtn = document.getElementById('globalSignOutBtn');
+
+    if (userBtn && userMenu) {
+      userBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = userMenu.style.display === 'block';
+        userMenu.style.display = isOpen ? 'none' : 'block';
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!dropdownDiv.contains(e.target)) {
+          userMenu.style.display = 'none';
+        }
+      });
+    }
+
+    if (signOutBtn) {
+      signOutBtn.addEventListener('click', () => {
+        sessionStorage.removeItem('pp_admin_logged_in');
+        sessionStorage.removeItem('pp_admin_user');
+        localStorage.removeItem('pp_user');
+        if (typeof showToast === 'function') showToast('Signed out successfully');
+        setTimeout(() => window.location.href = 'index.html', 300);
+      });
+    }
+  }
 }
 
 // --- Cart Badge ---
