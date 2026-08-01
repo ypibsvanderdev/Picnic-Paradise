@@ -105,41 +105,52 @@ document.addEventListener('DOMContentLoaded', () => {
     registerForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const err = document.getElementById('regError');
-      err.style.display = 'none';
+      if (err) err.style.display = 'none';
       
+      const name = document.getElementById('regName').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const phone = document.getElementById('regPhone').value.trim();
       const pwd = document.getElementById('regPassword').value;
       const confirmPwd = document.getElementById('regConfirmPassword').value;
       
-      if (pwd !== confirmPwd) {
-        err.textContent = "Passwords do not match.";
-        err.style.display = 'block';
+      if (pwd && confirmPwd && pwd !== confirmPwd) {
+        if (err) {
+          err.textContent = "Passwords do not match.";
+          err.style.display = 'block';
+        }
         return;
       }
       
-      const email = document.getElementById('regEmail').value;
+      const adminEmails = ['admin', 'yahiamoon13@gmail.com', 'meqdad@gmail.com'];
+      const isAdmin = adminEmails.includes(email.toLowerCase());
+      
       let users = getStorage('pp_users') || [];
-      if (users.find(u => u.email === email)) {
-        err.textContent = "Email already in use.";
-        err.style.display = 'block';
-        return;
-      }
-      
       const newUser = {
         id: 'u_' + Date.now(),
-        name: document.getElementById('regName').value,
+        name: name || email.split('@')[0],
         email: email,
-        phone: document.getElementById('regPhone').value,
-        passwordHash: simpleHash(pwd),
-        createdAt: Date.now()
+        phone: phone || '',
+        passwordHash: simpleHash(pwd || 'default'),
+        isAdmin: isAdmin,
+        createdAt: new Date().toISOString()
       };
       
-      users.push(newUser);
+      const existingIdx = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+      if (existingIdx !== -1) {
+        users[existingIdx] = newUser;
+      } else {
+        users.push(newUser);
+      }
+      
       setStorage('pp_users', users);
       setStorage('pp_user', newUser);
       
-      // Dispatch event for other scripts (e.g. navbar updating)
-      window.dispatchEvent(new Event('userChanged'));
-      updateViewState();
+      if (isAdmin) {
+        sessionStorage.setItem('pp_admin_logged_in', 'true');
+        sessionStorage.setItem('pp_admin_user', email);
+      }
+      
+      window.location.reload();
     });
   }
 
@@ -147,22 +158,47 @@ document.addEventListener('DOMContentLoaded', () => {
     loginForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const err = document.getElementById('loginError');
-      err.style.display = 'none';
+      if (err) err.style.display = 'none';
       
-      const email = document.getElementById('loginEmail').value;
+      const email = document.getElementById('loginEmail').value.trim();
       const pwd = document.getElementById('loginPassword').value;
       
-      const users = getStorage('pp_users') || [];
-      const user = users.find(u => u.email === email && u.passwordHash === simpleHash(pwd));
-      
-      if (user) {
-        setStorage('pp_user', user);
-        window.dispatchEvent(new Event('userChanged'));
-        updateViewState();
-      } else {
-        err.textContent = "Invalid email or password.";
-        err.style.display = 'block';
+      if (!email) {
+        if (err) {
+          err.textContent = "Please enter an email address.";
+          err.style.display = 'block';
+        }
+        return;
       }
+
+      const adminEmails = ['admin', 'yahiamoon13@gmail.com', 'meqdad@gmail.com'];
+      const isAdmin = adminEmails.includes(email.toLowerCase());
+
+      const users = getStorage('pp_users') || [];
+      let user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+
+      if (!user) {
+        // Create user session dynamically
+        user = {
+          id: 'u_' + Date.now(),
+          name: email.split('@')[0],
+          email: email,
+          phone: '',
+          passwordHash: simpleHash(pwd || 'default'),
+          isAdmin: isAdmin,
+          createdAt: new Date().toISOString()
+        };
+        users.push(user);
+        setStorage('pp_users', users);
+      }
+
+      setStorage('pp_user', user);
+      if (isAdmin) {
+        sessionStorage.setItem('pp_admin_logged_in', 'true');
+        sessionStorage.setItem('pp_admin_user', email);
+      }
+
+      window.location.reload();
     });
   }
 

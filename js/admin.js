@@ -133,20 +133,22 @@ document.addEventListener('DOMContentLoaded', () => {
       dateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
     }
 
+    // Render immediately from local storage
+    renderDashboard();
+    renderMenuTable();
+    renderCustomers();
+    setupSettings();
+
     // Subscribe to Firebase Realtime Orders
     if (typeof window.listenToFirebaseOrders === 'function') {
       window.listenToFirebaseOrders((orders) => {
-        window.currentAdminOrders = orders;
-        renderDashboardWithOrders(orders);
-        renderCustomersWithOrders(orders);
+        if (orders) {
+          window.currentAdminOrders = orders;
+          renderDashboardWithOrders(orders);
+          renderCustomersWithOrders(orders);
+        }
       });
-    } else {
-      renderDashboard();
-      renderCustomers();
     }
-
-    renderMenuTable();
-    setupSettings();
   }
 
   let currentOrderFilter = 'all';
