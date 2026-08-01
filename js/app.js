@@ -122,29 +122,42 @@ function dispatchCartUpdate() {
 }
 
 // Mock addToCart for homepage buttons
-window.addToCart = function(itemStr) {
+window.addToCart = function(itemInput) {
   try {
-    const item = typeof itemStr === 'string' ? JSON.parse(decodeURIComponent(itemStr)) : itemStr;
+    const item = typeof itemInput === 'string' ? JSON.parse(decodeURIComponent(itemInput)) : itemInput;
     let cart = JSON.parse(localStorage.getItem('pp_cart')) || [];
     
+    const cartItem = {
+      cartId: item.cartId || ('ci_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)),
+      itemId: item.itemId || item.id,
+      name: item.name,
+      category: item.category || 'drinks',
+      size: item.size || 'medium',
+      flavor: item.flavor || null,
+      addIns: item.addIns || [],
+      quantity: item.quantity || 1,
+      unitPrice: item.unitPrice || item.price || 5,
+      specialInstructions: item.specialInstructions || ''
+    };
+
     // Try to find if item with same ID and options already exists
-    const existingIndex = cart.findIndex(ci => ci.itemId === item.itemId);
+    const existingIndex = cart.findIndex(ci => 
+      ci.itemId === cartItem.itemId && 
+      ci.size === cartItem.size && 
+      ci.flavor === cartItem.flavor &&
+      JSON.stringify(ci.addIns || []) === JSON.stringify(cartItem.addIns || []) &&
+      (ci.specialInstructions || '') === (cartItem.specialInstructions || '')
+    );
+
     if (existingIndex > -1) {
-      cart[existingIndex].quantity += 1;
+      cart[existingIndex].quantity += (cartItem.quantity || 1);
     } else {
-      cart.push({
-        cartId: 'ci_' + Date.now(),
-        itemId: item.itemId,
-        name: item.name,
-        category: item.category,
-        size: item.size || 'medium',
-        quantity: 1,
-        unitPrice: item.price || 5,
-      });
+      cart.push(cartItem);
     }
+
     localStorage.setItem('pp_cart', JSON.stringify(cart));
     dispatchCartUpdate();
-    showToast(`${item.name} added to cart!`);
+    showToast(`${cartItem.name} added to cart!`);
   } catch (e) {
     console.error('Add to cart failed', e);
   }
