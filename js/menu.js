@@ -289,6 +289,17 @@ document.addEventListener('DOMContentLoaded', () => {
     populateAlsoBought(currentModalItem);
     
     modal.style.display = 'flex';
+    requestAnimationFrame(() => {
+      modal.classList.add('active');
+    });
+  }
+
+  function closeModal() {
+    if (!modal) return;
+    modal.classList.remove('active');
+    setTimeout(() => {
+      modal.style.display = 'none';
+    }, 200);
   }
 
   function updateModalPrice() {
@@ -318,19 +329,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if(modalClose) {
-    modalClose.addEventListener('click', () => {
-      modal.style.display = 'none';
-    });
+    modalClose.addEventListener('click', closeModal);
   }
   
   if(modal) {
     modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.style.display = 'none';
+      if (e.target === modal) closeModal();
     });
   }
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && modal) modal.style.display = 'none';
+    if (e.key === 'Escape' && modal) closeModal();
   });
 
   if(modalAddToCart) {
@@ -362,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.dispatchEvent(new Event('cartUpdated'));
       }
       
-      modal.style.display = 'none';
+      closeModal();
     });
   }
 

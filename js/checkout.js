@@ -42,12 +42,18 @@ document.addEventListener('DOMContentLoaded', () => {
       if(phoneInput) phoneInput.value = user.phone || '';
     }
     
-    if(checkoutModal) checkoutModal.style.display = 'flex';
+    if(checkoutModal) {
+      checkoutModal.style.display = 'flex';
+      requestAnimationFrame(() => checkoutModal.classList.add('active'));
+    }
   });
 
   if(modalClose) {
     modalClose.addEventListener('click', () => {
-      checkoutModal.style.display = 'none';
+      if (checkoutModal) {
+        checkoutModal.classList.remove('active');
+        setTimeout(() => checkoutModal.style.display = 'none', 200);
+      }
     });
   }
 
