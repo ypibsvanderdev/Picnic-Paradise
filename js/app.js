@@ -96,22 +96,24 @@ function renderNavUserProfile() {
   } catch (e) {}
 
   const isLoggedIn = isAdminLoggedIn || !!customerUser;
-  if (!isLoggedIn) return;
 
-  const email = isAdminLoggedIn ? adminUserEmail : (customerUser ? customerUser.email : '');
-  let name = customerUser ? (customerUser.name || customerUser.email.split('@')[0]) : (isAdminLoggedIn ? (adminUserEmail.split('@')[0] || 'Admin') : 'User');
-  name = name.charAt(0).toUpperCase() + name.slice(1);
-  const initial = name.charAt(0).toUpperCase();
-
-  const adminEmails = ['admin', 'yahiamoon13@gmail.com', 'meqdad@gmail.com'];
-  const isUserAdmin = isAdminLoggedIn || (email && adminEmails.includes(email.toLowerCase().trim()));
-
-  // Find account link to replace
+  // Find account link to replace or modify
   const accountLink = document.querySelector('a[data-page="account"]') || document.querySelector('a[href="account.html"]');
-  if (accountLink) {
-    const dropdownDiv = document.createElement('div');
-    dropdownDiv.className = 'nav-user-dropdown';
-    dropdownDiv.style.cssText = 'position: relative; display: inline-block; margin-left: 8px; vertical-align: middle;';
+  if (!accountLink) return;
+
+  const dropdownDiv = document.createElement('div');
+  dropdownDiv.className = 'nav-user-dropdown';
+  dropdownDiv.style.cssText = 'position: relative; display: inline-block; margin-left: 8px; vertical-align: middle;';
+
+  if (isLoggedIn) {
+    // LOGGED IN STATE
+    const email = isAdminLoggedIn ? adminUserEmail : (customerUser ? customerUser.email : '');
+    let name = customerUser ? (customerUser.name || customerUser.email.split('@')[0]) : (isAdminLoggedIn ? (adminUserEmail.split('@')[0] || 'Admin') : 'User');
+    name = name.charAt(0).toUpperCase() + name.slice(1);
+    const initial = name.charAt(0).toUpperCase();
+
+    const adminEmails = ['admin', 'yahiamoon13@gmail.com', 'meqdad@gmail.com'];
+    const isUserAdmin = isAdminLoggedIn || (email && adminEmails.includes(email.toLowerCase().trim()));
 
     dropdownDiv.innerHTML = `
       <button type="button" id="navUserBtn" style="display:flex; align-items:center; gap:8px; background:linear-gradient(135deg, rgba(78,205,196,0.15), rgba(255,230,109,0.2)); border:1.5px solid var(--pp-primary); padding:6px 14px; border-radius:20px; cursor:pointer; font-weight:600; font-family:'Outfit',sans-serif; color:var(--pp-text); transition:all 0.2s;">
@@ -132,7 +134,7 @@ function renderNavUserProfile() {
         ` : ''}
         
         <a href="account.html" style="display:flex; align-items:center; gap:8px; padding:10px 16px; color:var(--pp-text); text-decoration:none; font-size:0.9rem; transition:background 0.2s;" onmouseover="this.style.background='var(--pp-bg-alt)'" onmouseout="this.style.background='transparent'">
-          👤 My Account
+          👤 My Profile
         </a>
         
         <div style="border-top:1px solid var(--pp-border); margin:4px 0;"></div>
@@ -142,36 +144,59 @@ function renderNavUserProfile() {
         </button>
       </div>
     `;
+  } else {
+    // NOT LOGGED IN (GUEST) STATE
+    dropdownDiv.innerHTML = `
+      <button type="button" id="navUserBtn" style="display:flex; align-items:center; gap:8px; background:var(--pp-bg-alt); border:1px solid var(--pp-border); padding:6px 14px; border-radius:20px; cursor:pointer; font-weight:600; font-family:'Outfit',sans-serif; color:var(--pp-text); transition:all 0.2s;">
+        <span style="width:24px; height:24px; border-radius:50%; background:#888; color:white; display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:bold;">👤</span>
+        <span>Guest</span>
+        <span style="font-size:0.65rem; opacity:0.7;">▼</span>
+      </button>
+      
+      <div id="navUserMenu" style="display:none; position:absolute; right:0; top:calc(100% + 8px); background:var(--pp-surface); border-radius:12px; box-shadow:var(--pp-shadow-lg); min-width:200px; padding:8px 0; z-index:99999; border:1px solid var(--pp-border); text-align:left;">
+        <div style="padding:10px 16px; border-bottom:1px solid var(--pp-border); font-size:0.8rem; color:var(--pp-text-secondary);">
+          Welcome to Picnic Paradise!
+        </div>
+        
+        <a href="account.html" style="display:flex; align-items:center; gap:8px; padding:10px 16px; color:var(--pp-primary-dark); text-decoration:none; font-weight:700; font-size:0.9rem; transition:background 0.2s;" onmouseover="this.style.background='var(--pp-bg-alt)'" onmouseout="this.style.background='transparent'">
+          🔑 Sign In / Register
+        </a>
 
-    accountLink.parentNode.replaceChild(dropdownDiv, accountLink);
+        <a href="admin.html" style="display:flex; align-items:center; gap:8px; padding:10px 16px; color:var(--pp-text); text-decoration:none; font-size:0.9rem; transition:background 0.2s;" onmouseover="this.style.background='var(--pp-bg-alt)'" onmouseout="this.style.background='transparent'">
+          ⚙️ Admin Login
+        </a>
+      </div>
+    `;
+  }
 
-    const userBtn = document.getElementById('navUserBtn');
-    const userMenu = document.getElementById('navUserMenu');
-    const signOutBtn = document.getElementById('globalSignOutBtn');
+  accountLink.parentNode.replaceChild(dropdownDiv, accountLink);
 
-    if (userBtn && userMenu) {
-      userBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isOpen = userMenu.style.display === 'block';
-        userMenu.style.display = isOpen ? 'none' : 'block';
-      });
+  const userBtn = document.getElementById('navUserBtn');
+  const userMenu = document.getElementById('navUserMenu');
+  const signOutBtn = document.getElementById('globalSignOutBtn');
 
-      document.addEventListener('click', (e) => {
-        if (!dropdownDiv.contains(e.target)) {
-          userMenu.style.display = 'none';
-        }
-      });
-    }
+  if (userBtn && userMenu) {
+    userBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = userMenu.style.display === 'block';
+      userMenu.style.display = isOpen ? 'none' : 'block';
+    });
 
-    if (signOutBtn) {
-      signOutBtn.addEventListener('click', () => {
-        sessionStorage.removeItem('pp_admin_logged_in');
-        sessionStorage.removeItem('pp_admin_user');
-        localStorage.removeItem('pp_user');
-        if (typeof showToast === 'function') showToast('Signed out successfully');
-        setTimeout(() => window.location.href = 'index.html', 300);
-      });
-    }
+    document.addEventListener('click', (e) => {
+      if (!dropdownDiv.contains(e.target)) {
+        userMenu.style.display = 'none';
+      }
+    });
+  }
+
+  if (signOutBtn) {
+    signOutBtn.addEventListener('click', () => {
+      sessionStorage.removeItem('pp_admin_logged_in');
+      sessionStorage.removeItem('pp_admin_user');
+      localStorage.removeItem('pp_user');
+      if (typeof showToast === 'function') showToast('Signed out successfully');
+      setTimeout(() => window.location.href = 'index.html', 300);
+    });
   }
 }
 
