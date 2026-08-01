@@ -1,4 +1,23 @@
-// Basic hash function for demo purposes (NOT FOR PRODUCTION)
+// Storage Helpers
+function getStorage(key) {
+  if (typeof PPUtils !== 'undefined' && PPUtils.getStorage) return PPUtils.getStorage(key);
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : null;
+  } catch (e) { return null; }
+}
+
+function setStorage(key, value) {
+  if (typeof PPUtils !== 'undefined' && PPUtils.setStorage) {
+    PPUtils.setStorage(key, value);
+  } else {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {}
+  }
+}
+
+// Basic hash function
 function simpleHash(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
