@@ -127,16 +127,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderProducts(items) {
     productGrid.innerHTML = '';
-    resultCount.textContent = `${items.length} items`;
     
-    if (items.length === 0) {
+    // Check Admin state
+    const isAdminLoggedIn = sessionStorage.getItem('pp_admin_logged_in') === 'true';
+    let currentUserEmail = sessionStorage.getItem('pp_admin_user');
+    if (!currentUserEmail) {
+      try {
+        const u = JSON.parse(localStorage.getItem('pp_user'));
+        if (u && (u.isAdmin || ['admin', 'yahiamoon13@gmail.com', 'meqdad@gmail.com'].includes((u.email || '').toLowerCase().trim()))) {
+          currentUserEmail = u.email;
+        }
+      } catch(e) {}
+    }
+    const isUserAdmin = isAdminLoggedIn || !!currentUserEmail;
+
+    let overrides = {};
+    try {
+      overrides = (typeof PPUtils !== 'undefined' && PPUtils.getStorage) ? PPUtils.getStorage('pp_menu_overrides') : JSON.parse(localStorage.getItem('pp_menu_overrides'));
+    } catch(e) {}
+    overrides = overrides || {};
+
+    // Filter items based on soldOut status & admin role
+    let visibleItems = items.filter(item => {
+      const isSoldOut = overrides[item.id]?.soldOut || item.soldOut || false;
+      // Normal users CANNOT see sold out items!
+      if (!isUserAdmin && isSoldOut) return false;
+      return true;
+    });
+
+    resultCount.textContent = `${visibleItems.length} items`;
+    
+    if (visibleItems.length === 0) {
       emptyState.style.display = 'block';
     } else {
       emptyState.style.display = 'none';
-      items.forEach(item => {
+      visibleItems.forEach(item => {
+        const isSoldOut = overrides[item.id]?.soldOut || item.soldOut || false;
+
         const card = document.createElement('div');
-        card.className = `product-card ${item.soldOut ? 'sold-out' : ''}`;
+        card.className = `product-card ${isSoldOut ? 'sold-out' : ''}`;
         card.dataset.id = item.id;
+        
+        if (isSoldOut && isUserAdmin) {
+          card.style.cssText = 'opacity: 0.65; filter: grayscale(0.4); border: 2px dashed #ef4444; position: relative;';
+        }
         
         let priceText = '';
         if (item.prices.single) priceText = `$${item.prices.single.toFixed(2)}`;
@@ -144,11 +178,21 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (item.prices.medium) priceText = `from $${item.prices.medium.toFixed(2)}`;
         
         let badgeHtml = '';
-        if (item.badge) badgeHtml = `<span class="product-card-badge">${item.badge}</span>`;
-        else if (item.soldOut) badgeHtml = `<span class="product-card-badge">Sold Out</span>`;
+        if (isSoldOut && isUserAdmin) {
+          badgeHtml = `<span class="product-card-badge" style="background:#ef4444; color:white;">🚫 Hidden from Customers</span>`;
+        } else if (item.badge) {
+          badgeHtml = `<span class="product-card-badge">${item.badge}</span>`;
+        }
 
         const isFav = typeof isFavorite === 'function' ? isFavorite(item.id) : false;
         
+        let adminBtnHtml = '';
+        if (isUserAdmin) {
+          adminBtnHtml = isSoldOut 
+            ? `<button type="button" class="btn btn-sm toggle-avail-btn" style="background:#22c55e; color:white; margin-top:8px; width:100%; border:none; padding:8px; border-radius:6px; font-weight:700; cursor:pointer;" data-id="${item.id}">✅ Make Re-available</button>`
+            : `<button type="button" class="btn btn-sm toggle-avail-btn" style="background:#ef4444; color:white; margin-top:8px; width:100%; border:none; padding:8px; border-radius:6px; font-weight:700; cursor:pointer;" data-id="${item.id}">🚫 Mark Unavailable</button>`;
+        }
+
         card.innerHTML = `
           <div class="product-card-image" style="background: linear-gradient(135deg, ${item.gradient || '#eee, #ccc'})">
             <button class="product-card-favorite ${isFav ? 'active' : ''}" data-id="${item.id}" aria-label="Favorite">
@@ -165,19 +209,20 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="product-card-price">${priceText}</div>
           </div>
-          <div class="product-card-actions">
-            <button class="btn btn-primary btn-full order-btn" data-id="${item.id}" ${item.soldOut ? 'disabled' : ''}>Order</button>
+          <div class="product-card-actions" style="flex-direction:column; gap:6px;">
+            <button class="btn btn-primary btn-full order-btn" data-id="${item.id}" ${isSoldOut ? 'disabled' : ''}>${isSoldOut ? 'Unavailable' : 'Order'}</button>
+            ${adminBtnHtml}
           </div>
         `;
 
         card.addEventListener('click', (e) => {
-          if (!e.target.closest('.order-btn') && !e.target.closest('.product-card-favorite')) {
-            openProductModal(item.id);
+          if (!e.target.closest('.order-btn') && !e.target.closest('.product-card-favorite') && !e.target.closest('.toggle-avail-btn')) {
+            if (!isSoldOut) openProductModal(item.id);
           }
         });
 
         const orderBtn = card.querySelector('.order-btn');
-        if (orderBtn) {
+        if (orderBtn && !isSoldOut) {
           orderBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             openProductModal(item.id);
@@ -190,6 +235,32 @@ document.addEventListener('DOMContentLoaded', () => {
             e.stopPropagation();
             if (typeof toggleFavorite === 'function') toggleFavorite(item.id);
             favBtn.textContent = (favBtn.textContent === '♥') ? '♡' : '♥';
+          });
+        }
+
+        const toggleBtn = card.querySelector('.toggle-avail-btn');
+        if (toggleBtn) {
+          toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            let currentOverrides = {};
+            try {
+              currentOverrides = (typeof PPUtils !== 'undefined' && PPUtils.getStorage) ? PPUtils.getStorage('pp_menu_overrides') : JSON.parse(localStorage.getItem('pp_menu_overrides'));
+            } catch(err) {}
+            currentOverrides = currentOverrides || {};
+            if (!currentOverrides[item.id]) currentOverrides[item.id] = {};
+            currentOverrides[item.id].soldOut = !isSoldOut;
+
+            if (typeof PPUtils !== 'undefined' && PPUtils.setStorage) {
+              PPUtils.setStorage('pp_menu_overrides', currentOverrides);
+            } else {
+              localStorage.setItem('pp_menu_overrides', JSON.stringify(currentOverrides));
+            }
+
+            if (typeof showToast === 'function') {
+              showToast(isSoldOut ? `${item.name} is now available!` : `${item.name} marked unavailable for customers!`, 'info');
+            }
+
+            filterAndSort();
           });
         }
 
