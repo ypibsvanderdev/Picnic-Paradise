@@ -2,14 +2,15 @@
  * Picnic Paradise - Firebase Authentication Config & Helpers
  */
 
-// Firebase SDK Configuration
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDemoKeyForPicnicParadise2026Auth",
-  authDomain: "picnic-paradise-2026.firebaseapp.com",
-  projectId: "picnic-paradise-2026",
-  storageBucket: "picnic-paradise-2026.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:demo123456789"
+  apiKey: "AIzaSyBomW5fMYTb7-e1IcQiHrOM0O8ZaK2oALg",
+  authDomain: "picnic-paridise.firebaseapp.com",
+  projectId: "picnic-paridise",
+  storageBucket: "picnic-paridise.firebasestorage.app",
+  messagingSenderId: "719384772929",
+  appId: "1:719384772929:web:25269017495249510261c0",
+  measurementId: "G-8P12T6JX6B"
 };
 
 // Initialize Firebase App & Auth if SDK exists
@@ -41,7 +42,7 @@ window.signInWithGoogle = async function() {
         photoURL: user.photoURL
       };
     } catch (error) {
-      console.warn('Firebase Auth popup notice (using Google account picker):', error.message);
+      console.warn('Firebase Auth popup notice:', error.message);
     }
   }
   
