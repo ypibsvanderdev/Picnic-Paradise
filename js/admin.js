@@ -42,10 +42,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (googleAdminBtn) {
     googleAdminBtn.addEventListener('click', async () => {
       const err = document.getElementById('adminLoginError');
-      err.style.display = 'none';
+      if (err) err.style.display = 'none';
       
       try {
-        if (typeof window.signInWithGoogle === 'function' && typeof firebase !== 'undefined' && firebase.auth) {
+        if (typeof window.signInWithGoogle === 'function') {
           const user = await window.signInWithGoogle();
           const validUsers = ['admin', 'yahiamoon13@gmail.com', 'meqdad@gmail.com'];
           
@@ -56,26 +56,14 @@ document.addEventListener('DOMContentLoaded', () => {
             adminDashboard.style.display = 'flex';
             initAdmin();
           } else {
-            err.textContent = `Access Denied: ${user.email} is not authorized for Admin access. Authorized: yahiamoon13@gmail.com, meqdad@gmail.com`;
-            err.style.display = 'block';
-          }
-        } else {
-          // Quick simulation / fallback prompt if SDK is offline
-          const email = prompt('Enter your authorized Google Gmail address:', 'yahiamoon13@gmail.com');
-          if (email && ['yahiamoon13@gmail.com', 'meqdad@gmail.com'].includes(email.toLowerCase().trim())) {
-            sessionStorage.setItem('pp_admin_logged_in', 'true');
-            sessionStorage.setItem('pp_admin_user', email);
-            adminLogin.style.display = 'none';
-            adminDashboard.style.display = 'flex';
-            initAdmin();
-          } else if (email) {
-            alert('Access Denied: That Gmail account is not an authorized administrator.');
+            if (err) {
+              err.textContent = `Access Denied: ${user.email} is not an authorized Admin account.`;
+              err.style.display = 'block';
+            }
           }
         }
       } catch (error) {
-        console.error('Google Sign-In Error:', error);
-        err.textContent = error.message || 'Google Sign-In failed';
-        err.style.display = 'block';
+        console.warn('Google Sign-In notice:', error);
       }
     });
   }
