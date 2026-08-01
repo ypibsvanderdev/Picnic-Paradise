@@ -241,13 +241,28 @@
       if(itemsList) {
         order.items.forEach(item => {
           const div = document.createElement('div');
-          div.style.display = 'flex';
-          div.style.justifyContent = 'space-between';
-          div.style.marginBottom = '0.5rem';
-          div.innerHTML = \`
-            <span>\${item.quantity}x \${item.name} <small class="text-muted" style="color:var(--pp-text-secondary);">(\${item.size || 'single'})</small></span>
-            <span>$\${(item.unitPrice * item.quantity).toFixed(2)}</span>
-          \`;
+          div.style.padding = '0.5rem 0';
+          div.style.borderBottom = '1px dashed var(--pp-border)';
+          
+          let addInsText = '';
+          if (item.addIns && item.addIns.length > 0) {
+            const names = item.addIns.map(a => typeof a === 'string' ? a : (a.name || a)).join(', ');
+            addInsText = `<div style="font-size:0.8rem; color:var(--pp-primary-dark);">+ Add-ins: ${names}</div>`;
+          }
+          
+          let noteText = '';
+          if (item.specialInstructions && item.specialInstructions.trim()) {
+            noteText = `<div style="font-size:0.8rem; color:var(--pp-accent-dark); font-style:italic;">📝 Note: ${item.specialInstructions}</div>`;
+          }
+
+          div.innerHTML = `
+            <div style="display: flex; justify-content: space-between;">
+              <span><strong>${item.quantity}x ${item.name}</strong> <small class="text-muted">(${item.size || 'single'}${item.flavor ? ' - ' + item.flavor : ''})</small></span>
+              <span>$${(item.unitPrice * item.quantity).toFixed(2)}</span>
+            </div>
+            ${addInsText}
+            ${noteText}
+          `;
           itemsList.appendChild(div);
         });
       }

@@ -90,13 +90,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let detailsHtml = '';
-        if (item.size && item.size !== 'single') detailsHtml += `<span class="badge" style="background:var(--pp-bg-alt); color:var(--pp-text); padding:0.2rem 0.5rem; border-radius:4px; font-size:0.8rem;">${item.size}</span> `;
-        if (item.flavor) detailsHtml += `<span class="badge" style="background:var(--pp-bg-alt); color:var(--pp-text); padding:0.2rem 0.5rem; border-radius:4px; font-size:0.8rem;">${item.flavor}</span> `;
+        if (item.size && item.size !== 'single') detailsHtml += `<span class="badge" style="background:var(--pp-bg-alt); color:var(--pp-text); padding:0.25rem 0.6rem; border-radius:6px; font-size:0.8rem; font-weight:600;">Size: ${item.size.charAt(0).toUpperCase() + item.size.slice(1)}</span> `;
+        if (item.flavor) detailsHtml += `<span class="badge" style="background:var(--pp-bg-alt); color:var(--pp-text); padding:0.25rem 0.6rem; border-radius:6px; font-size:0.8rem; font-weight:600;">Flavor: ${item.flavor}</span> `;
+        
         if (item.addIns && item.addIns.length > 0) {
-          detailsHtml += `<div class="cart-item-addins text-muted" style="font-size: 0.8rem; margin-top: 0.25rem;">+ ${item.addIns.map(a => a.name).join(', ')}</div>`;
+          const addInNames = item.addIns.map(a => typeof a === 'string' ? a : (a.name || a)).join(', ');
+          detailsHtml += `<div class="cart-item-addins" style="font-size: 0.85rem; color: var(--pp-primary-dark); margin-top: 0.4rem; font-weight: 500;"><strong>+ Add-ins:</strong> ${addInNames}</div>`;
         }
-        if (item.specialInstructions) {
-          detailsHtml += `<div class="cart-item-instructions text-muted" style="font-size: 0.8rem; font-style: italic;">Note: ${item.specialInstructions}</div>`;
+        
+        if (item.specialInstructions && item.specialInstructions.trim()) {
+          detailsHtml += `<div class="cart-item-instructions" style="font-size: 0.85rem; color: var(--pp-accent-dark); background: rgba(255, 107, 107, 0.08); padding: 0.3rem 0.6rem; border-radius: 6px; margin-top: 0.4rem; font-style: italic; border-left: 3px solid var(--pp-accent);"><strong>📝 Note:</strong> ${item.specialInstructions}</div>`;
         }
 
         const lineTotal = item.unitPrice * item.quantity;
