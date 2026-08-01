@@ -50,6 +50,39 @@ document.addEventListener('DOMContentLoaded', () => {
   // Init
   filterAndSort();
 
+  // Global event delegation for Admin Availability Toggle
+  document.addEventListener('click', (e) => {
+    const toggleBtn = e.target.closest('.toggle-avail-btn');
+    if (toggleBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const itemId = toggleBtn.dataset.id;
+      if (!itemId) return;
+
+      let currentOverrides = {};
+      try {
+        currentOverrides = (typeof PPUtils !== 'undefined' && PPUtils.getStorage) ? PPUtils.getStorage('pp_menu_overrides') : JSON.parse(localStorage.getItem('pp_menu_overrides'));
+      } catch(err) {}
+      currentOverrides = currentOverrides || {};
+      if (!currentOverrides[itemId]) currentOverrides[itemId] = {};
+
+      const isCurrentlySoldOut = !!currentOverrides[itemId].soldOut;
+      currentOverrides[itemId].soldOut = !isCurrentlySoldOut;
+
+      if (typeof PPUtils !== 'undefined' && PPUtils.setStorage) {
+        PPUtils.setStorage('pp_menu_overrides', currentOverrides);
+      } else {
+        localStorage.setItem('pp_menu_overrides', JSON.stringify(currentOverrides));
+      }
+
+      if (typeof showToast === 'function') {
+        showToast(!isCurrentlySoldOut ? 'Item marked unavailable for customers!' : 'Item is now available!', 'info');
+      }
+
+      filterAndSort();
+    }
+  });
+
   // Search Debounce
   let searchTimeout;
   if(searchInput) {

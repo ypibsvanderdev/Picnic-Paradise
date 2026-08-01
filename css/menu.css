@@ -167,9 +167,9 @@
 }
 
 .product-card.sold-out {
-  opacity: 0.5;
-  filter: grayscale(100%);
-  pointer-events: none;
+  opacity: 0.75;
+  filter: grayscale(40%);
+  pointer-events: auto !important;
 }
 
 .product-card-actions {
