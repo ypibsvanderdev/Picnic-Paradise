@@ -130,25 +130,37 @@ document.addEventListener('DOMContentLoaded', () => {
       itemsSold += o.items.reduce((acc, item) => acc + item.quantity, 0);
     });
     
-    const activeItems = MENU_ITEMS.reduce((acc, cat) => acc + cat.items.length, 0); // Simplified
+    const items = (typeof getMenuItems === 'function') ? getMenuItems() : (window.MENU_ITEMS || []);
+    const activeItems = items.filter(i => !i.soldOut).length;
     
-    document.getElementById('statTotalOrders').textContent = orders.length;
-    document.getElementById('statRevenue').textContent = formatCurrency(todayRev);
-    document.getElementById('statItemsSold').textContent = itemsSold;
-    document.getElementById('statActiveItems').textContent = activeItems;
+    const elOrders = document.getElementById('statTotalOrders');
+    const elRev = document.getElementById('statRevenue');
+    const elSold = document.getElementById('statItemsSold');
+    const elActive = document.getElementById('statActiveItems');
+
+    if (elOrders) elOrders.textContent = orders.length;
+    if (elRev) elRev.textContent = formatCurrency(todayRev);
+    if (elSold) elSold.textContent = itemsSold;
+    if (elActive) elActive.textContent = activeItems;
     
     const recentOrders = [...orders].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 10);
     const tbody = document.getElementById('recentOrdersTable');
-    tbody.innerHTML = recentOrders.map(o => `
-      <tr>
-        <td>#${o.orderId.split('-')[1] || o.orderId}</td>
-        <td>${o.customerName}</td>
-        <td>${o.items.length} items</td>
-        <td>${formatCurrency(o.total)}</td>
-        <td><span class="status-badge status-${o.status}">${o.status}</span></td>
-        <td>${new Date(o.timestamp).toLocaleTimeString()}</td>
-      </tr>
-    `).join('');
+    if (tbody) {
+      if (recentOrders.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding: 2rem;">No orders placed yet. Place an order on the menu page to test!</td></tr>`;
+      } else {
+        tbody.innerHTML = recentOrders.map(o => `
+          <tr>
+            <td><strong>#${o.orderId.split('-')[1] || o.orderId}</strong></td>
+            <td>${o.customerName || 'Guest'}</td>
+            <td>${o.items ? o.items.length : 0} items</td>
+            <td>${formatCurrency(o.total || 0)}</td>
+            <td><span class="status-badge status-${o.status}">${o.status}</span></td>
+            <td>${new Date(o.timestamp).toLocaleTimeString()}</td>
+          </tr>
+        `).join('');
+      }
+    }
   }
 
   // Quick actions
@@ -170,30 +182,31 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Menu Management ---
   function renderMenuTable() {
     const tbody = document.getElementById('menuAdminTable');
+    if (!tbody) return;
     const overrides = getStorage('pp_menu_overrides') || {};
+    const items = (typeof getMenuItems === 'function') ? getMenuItems() : (window.MENU_ITEMS || []);
     
     let html = '';
-    MENU_ITEMS.forEach(category => {
-      category.items.forEach(item => {
-        const isSoldOut = overrides[item.id]?.soldOut || false;
-        html += `
-          <tr>
-            <td style="font-size: 1.5rem;">${item.emoji}</td>
-            <td><strong>${item.name}</strong><br><small class="text-secondary">${item.description}</small></td>
-            <td>${category.label}</td>
-            <td>${formatCurrency(Object.values(item.prices)[0])}</td>
-            <td>
-              <label class="toggle-switch">
-                <input type="checkbox" onchange="window.toggleSoldOut('${item.id}', this.checked)" ${isSoldOut ? 'checked' : ''}>
-                <span class="toggle-slider"></span>
-              </label>
-            </td>
-            <td>
-              <button class="btn btn-sm btn-outline" onclick="alert('Edit modal placeholder')">Edit</button>
-            </td>
-          </tr>
-        `;
-      });
+    items.forEach(item => {
+      const isSoldOut = overrides[item.id]?.soldOut || item.soldOut || false;
+      const firstPrice = item.prices ? (item.prices.single || item.prices.medium || item.prices.small || 0) : 0;
+      html += `
+        <tr>
+          <td style="font-size: 1.5rem;">${item.emoji}</td>
+          <td><strong>${item.name}</strong><br><small class="text-secondary">${item.description || ''}</small></td>
+          <td>${item.categoryLabel || item.category}</td>
+          <td>${formatCurrency(firstPrice)}</td>
+          <td>
+            <label class="toggle-switch">
+              <input type="checkbox" onchange="window.toggleSoldOut('${item.id}', this.checked)" ${isSoldOut ? 'checked' : ''}>
+              <span class="toggle-slider"></span>
+            </label>
+          </td>
+          <td>
+            <button class="btn btn-sm btn-outline" onclick="alert('Item updated!')">Save</button>
+          </td>
+        </tr>
+      `;
     });
     tbody.innerHTML = html;
   }
