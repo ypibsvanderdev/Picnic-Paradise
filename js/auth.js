@@ -294,9 +294,12 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <p style="margin-bottom:0.4rem;"><strong>Payment Method:</strong> ${order.paymentMethod || 'Credit Card 💳'}</p>
           <p style="margin-bottom:0.4rem;"><strong>Total Paid:</strong> ${formatCurrency(order.total || 0)} (${order.items ? order.items.length : 0} items)</p>
-          <p style="margin-bottom:0.75rem;"><strong>Pickup Time:</strong> ${order.pickupTime || '12:00 PM'}</p>
           <details style="margin-top: 0.75rem; background:var(--pp-bg-alt); padding:0.75rem; border-radius:8px;">
-            <summary style="cursor: pointer; color: var(--pp-primary-dark); font-weight: 600;">View Order Items (${order.items ? order.items.length : 0})</summary>
+            <summary style="cursor: pointer; color: var(--pp-primary-dark); font-weight: 600;">View Items & Pickup QR Code (${order.items ? order.items.length : 0} items)</summary>
+            <div style="text-align:center; margin: 0.75rem 0; padding: 0.75rem; background:#fff; border-radius:12px; width:150px; margin-left:auto; margin-right:auto;">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=PP-ORDER:${order.orderId}&color=0f172a" alt="QR Code" style="width:130px; height:130px; border-radius:6px; display:block; margin:0 auto;">
+              <small style="color:#333; font-weight:700; display:block; margin-top:4px; font-size:0.75rem;">Show at Pickup</small>
+            </div>
             <ul style="margin-top: 0.5rem; list-style: none; padding-left: 0;">
               ${(order.items || []).map(i => {
                 let addIns = '';
