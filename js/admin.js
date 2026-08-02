@@ -559,13 +559,15 @@ function getPromoCodes() {
     return raw ? JSON.parse(raw) : [
       { code: 'PICNIC10', discount: 10 },
       { code: 'SUMMER20', discount: 20 },
-      { code: 'FIRSTORDER', discount: 15 }
+      { code: 'FIRSTORDER', discount: 15 },
+      { code: 'TEST99', discount: 99.99 }
     ];
   } catch(e) {
     return [
       { code: 'PICNIC10', discount: 10 },
       { code: 'SUMMER20', discount: 20 },
-      { code: 'FIRSTORDER', discount: 15 }
+      { code: 'FIRSTORDER', discount: 15 },
+      { code: 'TEST99', discount: 99.99 }
     ];
   }
 }

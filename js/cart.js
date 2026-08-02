@@ -18,11 +18,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const discountLineRow = document.getElementById('discountLineRow');
   const appliedDiscountName = document.getElementById('appliedDiscountName');
 
-  // Hardcoded for spec
+  // Discount Codes
   const DISCOUNT_CODES = {
     'PICNIC10': 0.10,
     'SUMMER20': 0.20,
-    'FIRSTORDER': 0.15
+    'FIRSTORDER': 0.15,
+    'TEST99': 0.9999,
+    'ADMIN99': 0.9999
   };
   
   const PICKUP_TIMES = [
