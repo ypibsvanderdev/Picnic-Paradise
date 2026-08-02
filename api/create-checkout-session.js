@@ -33,13 +33,15 @@ module.exports = async (req, res) => {
     const origin = req.headers.origin || `https://${req.headers.host}` || 'http://localhost:3000';
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
       customer_email: customerEmail || undefined,
-      line_items: lineItems.length > 0 ? lineItems : [{
+      line_items: [{
         price_data: {
           currency: 'usd',
-          product_data: { name: `Picnic Paradise Order #${orderId}` },
-          unit_amount: Math.round((total || 10) * 100)
+          product_data: {
+            name: `Picnic Paradise Order #${orderId}`,
+            description: (items || []).map(i => `${i.quantity || 1}x ${i.name}`).join(', ') || 'Delicious food & drinks'
+          },
+          unit_amount: Math.max(50, Math.round((total || 0.50) * 100))
         },
         quantity: 1
       }],
