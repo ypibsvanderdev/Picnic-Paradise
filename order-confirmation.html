@@ -248,7 +248,11 @@
       // Render QR Code
       const qrEl = document.getElementById('qrcode');
       if (qrEl) {
-        qrEl.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent('PP-ORDER:' + order.orderId)}&color=0f172a" alt="Order QR Code #${order.orderId}" style="width:160px; height:160px; border-radius:8px; display:block; margin:0 auto; box-shadow:0 2px 10px rgba(0,0,0,0.1);">`;
+        if (typeof PPUtils !== 'undefined' && PPUtils.renderQRCodeHTML) {
+          PPUtils.renderQRCodeHTML(order.orderId, qrEl);
+        } else {
+          qrEl.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent('PP-ORDER:' + order.orderId)}&color=0f172a" alt="QR Code #${order.orderId}" style="width:160px; height:160px; border-radius:10px; display:block; margin:0 auto;">`;
+        }
       }
 
       const itemsList = document.getElementById('confItemsList');

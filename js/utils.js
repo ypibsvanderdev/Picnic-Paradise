@@ -264,12 +264,22 @@ window.PPUtils = {
     let items = JSON.parse(JSON.stringify(window.MENU_ITEMS));
     const overrides = window.PPUtils.getStorage('pp_menu_overrides') || {};
     
-    return items.map(item => {
-      if (overrides[item.id]) {
-        return { ...item, ...overrides[item.id] };
-      }
-      return item;
-    });
+  // QR Code Renderer Helper with Double Fallback
+  renderQRCodeHTML: (orderId, containerEl) => {
+    if (!containerEl) return;
+    const text = `PP-ORDER:${orderId}`;
+    const primaryUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(text)}&color=0f172a`;
+    const fallbackUrl = `https://chart.googleapis.com/chart?cht=qr&chs=180x180&chl=${encodeURIComponent(text)}`;
+    
+    containerEl.innerHTML = `
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px;">
+        <img src="${primaryUrl}" 
+             alt="QR Code #${orderId}" 
+             style="width:160px; height:160px; border-radius:10px; border:3px solid #fff; box-shadow:0 4px 12px rgba(0,0,0,0.15); background:#fff;" 
+             onerror="this.onerror=null; this.src='${fallbackUrl}';">
+        <div style="margin-top:8px; font-weight:700; font-size:0.9rem; color:var(--pp-primary-dark,#2563eb); font-family:monospace;">#${(orderId||'').replace('PP-','')}</div>
+      </div>
+    `;
   }
 };
 
