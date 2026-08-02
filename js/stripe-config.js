@@ -2,8 +2,8 @@
  * Picnic Paradise Stripe Payment Configuration & Handler
  */
 
-// Replace with your real Stripe Publishable Key from https://dashboard.stripe.com/apikeys
-window.STRIPE_PUBLISHABLE_KEY = localStorage.getItem('pp_stripe_pk') || 'pk_test_51PPicnicParadiseTestKey1234567890';
+// Live Stripe Publishable Key
+window.STRIPE_PUBLISHABLE_KEY = localStorage.getItem('pp_stripe_pk') || 'pk_live_51Tzmw4LXU4os5QyXVR72hFVpCQPyKW5tRbqXnlhuKwmaFlRlhmdHw8aGZzBVtmfO9OmRp4UrndaL2IXQHEXbEBqF00ix5aeQSG';
 
 let stripeInstance = null;
 
