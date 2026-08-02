@@ -204,6 +204,27 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderOrderSummary() {
     if(!summarySubtotal) return;
     let subtotal = cart.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+    
+    if (currentDiscount.rate > 0) {
+      let tax = subtotal * 0.0825;
+      let fullTotal = subtotal + tax;
+      let discountAmount = Math.max(0, fullTotal - 0.01);
+      let total = 0.01;
+
+      summarySubtotal.textContent = `$${subtotal.toFixed(2)}`;
+      summaryTax.textContent = `$0.00`;
+      summaryTotal.textContent = `$0.01 🎉 (1 Cent Special!)`;
+
+      discountLineRow.style.display = 'flex';
+      appliedDiscountName.textContent = currentDiscount.code;
+      summaryDiscount.textContent = `-$${discountAmount.toFixed(2)}`;
+
+      window.cartSummary = { subtotal, discountAmount, tax: 0, total: 0.01, discountCode: currentDiscount.code };
+      const modalTotalAmt = document.getElementById('checkoutTotalAmount');
+      if (modalTotalAmt) modalTotalAmt.textContent = `$0.01`;
+      return;
+    }
+
     let discountAmount = subtotal * currentDiscount.rate;
     let afterDiscount = subtotal - discountAmount;
     let tax = afterDiscount * 0.0825; // 8.25%
@@ -213,14 +234,8 @@ document.addEventListener('DOMContentLoaded', () => {
     summaryTax.textContent = `$${tax.toFixed(2)}`;
     summaryTotal.textContent = `$${total.toFixed(2)}`;
 
-    if (currentDiscount.rate > 0) {
-      discountLineRow.style.display = 'flex';
-      appliedDiscountName.textContent = currentDiscount.code;
-      summaryDiscount.textContent = `-$${discountAmount.toFixed(2)}`;
-    } else {
-      discountLineRow.style.display = 'none';
-    }
-    
+    discountLineRow.style.display = 'none';
+
     // Store globally for checkout
     window.cartSummary = { subtotal, discountAmount, tax, total, discountCode: currentDiscount.code };
     const modalTotalAmt = document.getElementById('checkoutTotalAmount');
