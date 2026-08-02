@@ -2,10 +2,8 @@
  * Vercel Serverless API Endpoint: Stripe Checkout Session Creator
  *
  * Environment Variable Required on Vercel:
- * STRIPE_SECRET_KEY=sk_test_... (or sk_live_...)
+ * STRIPE_SECRET_KEY=sk_live_... (or sk_test_...)
  */
-
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || 'sk_test_mockKeyForPicnicParadise123456');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -13,24 +11,19 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
+  // Check if STRIPE_SECRET_KEY is configured
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeKey || stripeKey.includes('mock') || stripeKey.length < 20) {
+    return res.status(500).json({ 
+      error: 'STRIPE_SECRET_KEY environment variable is not configured. Go to Vercel Project Settings > Environment Variables and add it.' 
+    });
+  }
+
   try {
+    const stripe = require('stripe')(stripeKey);
     const { orderId, customerEmail, customerName, items, total } = req.body;
 
-    const lineItems = (items || []).map(item => ({
-      price_data: {
-        currency: 'usd',
-        product_data: {
-          name: `${item.name} (${item.size || 'single'}${item.flavor ? ' - ' + item.flavor : ''})`,
-          description: item.addIns && item.addIns.length > 0 
-            ? `Add-ins: ${item.addIns.map(a => typeof a === 'string' ? a : (a.name || a)).join(', ')}` 
-            : undefined
-        },
-        unit_amount: Math.round((item.unitPrice || 0) * 100),
-      },
-      quantity: item.quantity || 1,
-    }));
-
-    const origin = req.headers.origin || `https://${req.headers.host}` || 'http://localhost:3000';
+    const origin = req.headers.origin || `https://${req.headers.host}`;
 
     const session = await stripe.checkout.sessions.create({
       customer_email: customerEmail || undefined,
@@ -39,7 +32,7 @@ module.exports = async (req, res) => {
           currency: 'usd',
           product_data: {
             name: `Picnic Paradise Order #${orderId}`,
-            description: (items || []).map(i => `${i.quantity || 1}x ${i.name}`).join(', ') || 'Delicious food & drinks'
+            description: (items || []).map(i => `${i.quantity || 1}x ${i.name}`).join(', ') || 'Picnic order'
           },
           unit_amount: Math.max(50, Math.round((total || 0.50) * 100))
         },
@@ -56,7 +49,7 @@ module.exports = async (req, res) => {
 
     return res.status(200).json({ id: session.id, url: session.url });
   } catch (error) {
-    console.error('Stripe Session Error:', error);
+    console.error('Stripe Session Error:', error.message);
     return res.status(500).json({ error: error.message });
   }
 };
