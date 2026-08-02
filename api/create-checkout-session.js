@@ -11,11 +11,15 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  // Check if STRIPE_SECRET_KEY is configured
   const stripeKey = process.env.STRIPE_SECRET_KEY;
-  if (!stripeKey || stripeKey.includes('mock') || stripeKey.length < 20) {
+  
+  // Debug: show what env vars look like (first 10 chars only, safe to expose)
+  if (!stripeKey) {
+    const envKeys = Object.keys(process.env).filter(k => k.includes('STRIPE') || k.includes('stripe'));
     return res.status(500).json({ 
-      error: 'STRIPE_SECRET_KEY environment variable is not configured. Go to Vercel Project Settings > Environment Variables and add it.' 
+      error: 'STRIPE_SECRET_KEY is not set',
+      debug_env_keys_containing_stripe: envKeys,
+      debug_all_env_count: Object.keys(process.env).length
     });
   }
 
@@ -50,6 +54,9 @@ module.exports = async (req, res) => {
     return res.status(200).json({ id: session.id, url: session.url });
   } catch (error) {
     console.error('Stripe Session Error:', error.message);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ 
+      error: error.message,
+      key_prefix: stripeKey ? stripeKey.substring(0, 12) + '...' : 'NONE'
+    });
   }
 };
