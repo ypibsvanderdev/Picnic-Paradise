@@ -13,13 +13,14 @@ module.exports = async (req, res) => {
 
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   
-  // Debug: show what env vars look like (first 10 chars only, safe to expose)
+  // Debug: show what env vars look like
   if (!stripeKey) {
-    const envKeys = Object.keys(process.env).filter(k => k.includes('STRIPE') || k.includes('stripe'));
     return res.status(500).json({ 
-      error: 'STRIPE_SECRET_KEY is not set',
-      debug_env_keys_containing_stripe: envKeys,
-      debug_all_env_count: Object.keys(process.env).length
+      error: 'STRIPE_SECRET_KEY value is empty or missing',
+      key_exists: 'STRIPE_SECRET_KEY' in process.env,
+      key_type: typeof stripeKey,
+      key_length: stripeKey ? stripeKey.length : 0,
+      key_value_preview: stripeKey === '' ? 'EMPTY_STRING' : stripeKey === undefined ? 'UNDEFINED' : stripeKey === null ? 'NULL' : 'OTHER_FALSY'
     });
   }
 
