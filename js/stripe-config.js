@@ -31,11 +31,27 @@ window.processStripeCheckout = async function(orderData) {
     window.saveOrderToFirebase(orderData);
   }
 
-  // Attempt serverless Stripe API endpoint if deployed on Vercel
+  let redirected = false;
+
+  const doFinalRedirect = () => {
+    if (redirected) return;
+    redirected = true;
+    localStorage.removeItem('pp_cart');
+    window.dispatchEvent(new CustomEvent('cartUpdated', { detail: [] }));
+    window.location.href = `order-confirmation.html?id=${orderData.orderId}`;
+  };
+
+  // 3.5 Second Safety Timeout so modal NEVER freezes
+  const safetyTimer = setTimeout(doFinalRedirect, 3500);
+
   try {
+    const controller = new AbortController();
+    const fetchTimeout = setTimeout(() => controller.abort(), 3000);
+
     const response = await fetch('/api/create-checkout-session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
       body: JSON.stringify({
         orderId: orderData.orderId,
         customerEmail: orderData.customerEmail,
@@ -44,26 +60,22 @@ window.processStripeCheckout = async function(orderData) {
         total: orderData.total
       })
     });
+    clearTimeout(fetchTimeout);
 
     if (response.ok) {
       const session = await response.json();
-      if (session.url) {
+      if (session && session.url) {
+        clearTimeout(safetyTimer);
+        redirected = true;
+        localStorage.removeItem('pp_cart');
         window.location.href = session.url;
         return;
       }
-      if (session.id && stripe) {
-        const result = await stripe.redirectToCheckout({ sessionId: session.id });
-        if (!result.error) return;
-      }
     }
   } catch (err) {
-    console.log('Stripe Serverless Endpoint notice (using direct test confirmation):', err);
+    console.log('Stripe checkout notice:', err);
   }
 
-  // Clear cart after successful checkout
-  localStorage.removeItem('pp_cart');
-  window.dispatchEvent(new CustomEvent('cartUpdated', { detail: [] }));
-
-  // Redirect to order confirmation screen
-  window.location.href = `order-confirmation.html?id=${orderData.orderId}`;
+  clearTimeout(safetyTimer);
+  doFinalRedirect();
 };
