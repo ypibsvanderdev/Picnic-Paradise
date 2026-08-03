@@ -230,8 +230,9 @@ function initAdmin(userEmail) {
 
     // Subscribe to Firebase Realtime Orders
     if (typeof window.listenToFirebaseOrders === 'function') {
-      window.listenToFirebaseOrders((orders) => {
-        if (orders && Array.isArray(orders)) {
+      window.listenToFirebaseOrders((rawOrders) => {
+        if (rawOrders && Array.isArray(rawOrders)) {
+          const orders = rawOrders.filter(o => o && o.status !== 'unpaid');
           window.currentAdminOrders = orders;
           renderDashboardWithOrders(orders);
           renderCustomersWithOrders(orders);
@@ -243,10 +244,11 @@ function initAdmin(userEmail) {
     window.addEventListener('storage', (e) => {
       if (e.key === 'pp_orders') {
         try {
-          const newOrders = JSON.parse(e.newValue) || [];
-          window.currentAdminOrders = newOrders;
-          renderDashboardWithOrders(newOrders);
-          renderCustomersWithOrders(newOrders);
+          const rawOrders = JSON.parse(e.newValue) || [];
+          const orders = rawOrders.filter(o => o && o.status !== 'unpaid');
+          window.currentAdminOrders = orders;
+          renderDashboardWithOrders(orders);
+          renderCustomersWithOrders(orders);
         } catch(err) {}
       }
     });
@@ -258,7 +260,8 @@ function initAdmin(userEmail) {
 
 // --- Dashboard & Orders ---
 function renderDashboard() {
-  const orders = window.currentAdminOrders || getLocalOrders();
+  const rawOrders = window.currentAdminOrders || getLocalOrders();
+  const orders = (rawOrders || []).filter(o => o && o.status !== 'unpaid');
   renderDashboardWithOrders(orders);
 }
 

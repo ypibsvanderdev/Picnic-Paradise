@@ -21,9 +21,16 @@ function getStripe() {
 window.processStripeCheckout = async function(orderData) {
   const stripe = getStripe();
   
-  // Save order details to a PENDING local storage key before processing.
-  // We will only commit it to the real system after successful payment.
-  localStorage.setItem('pp_pending_order', JSON.stringify(orderData));
+  // Save to system immediately as UNPAID. 
+  // It will be hidden from the Admin Dashboard until the status changes to paid.
+  orderData.status = 'unpaid';
+  if (typeof window.saveOrderToFirebase === 'function') {
+    window.saveOrderToFirebase(orderData);
+  } else {
+    let orders = PPUtils.getStorage('pp_orders') || [];
+    orders.push(orderData);
+    PPUtils.setStorage('pp_orders', orders);
+  }
 
   try {
     // Call our API to create a Stripe Checkout Session — give it up to 15 seconds
