@@ -31,22 +31,10 @@ window.processStripeCheckout = async function(orderData) {
     window.saveOrderToFirebase(orderData);
   }
 
-  let redirected = false;
-
-  const doFinalRedirect = () => {
-    if (redirected) return;
-    redirected = true;
-    localStorage.removeItem('pp_cart');
-    window.dispatchEvent(new CustomEvent('cartUpdated', { detail: [] }));
-    window.location.href = `order-confirmation.html?id=${orderData.orderId}`;
-  };
-
-  // 3.5 Second Safety Timeout so modal NEVER freezes
-  const safetyTimer = setTimeout(doFinalRedirect, 3500);
-
   try {
+    // Call our API to create a Stripe Checkout Session — give it up to 15 seconds
     const controller = new AbortController();
-    const fetchTimeout = setTimeout(() => controller.abort(), 3000);
+    const fetchTimeout = setTimeout(() => controller.abort(), 15000);
 
     const response = await fetch('/api/create-checkout-session', {
       method: 'POST',
@@ -65,17 +53,26 @@ window.processStripeCheckout = async function(orderData) {
     if (response.ok) {
       const session = await response.json();
       if (session && session.url) {
-        clearTimeout(safetyTimer);
-        redirected = true;
+        // Redirect to Stripe's hosted checkout page
         localStorage.removeItem('pp_cart');
+        window.dispatchEvent(new CustomEvent('cartUpdated', { detail: [] }));
         window.location.href = session.url;
         return;
       }
     }
-  } catch (err) {
-    console.log('Stripe checkout notice:', err);
-  }
 
-  clearTimeout(safetyTimer);
-  doFinalRedirect();
+    // If API returned an error, show it
+    const errorData = await response.json().catch(() => ({}));
+    console.error('Stripe API error:', errorData);
+    alert('Payment setup failed: ' + (errorData.error || 'Unknown error. Please try again.'));
+    
+  } catch (err) {
+    console.error('Stripe checkout error:', err);
+    
+    if (err.name === 'AbortError') {
+      alert('Payment is taking too long. Please check your connection and try again.');
+    } else {
+      alert('Could not connect to payment service. Please try again.');
+    }
+  }
 };
