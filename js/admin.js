@@ -35,12 +35,31 @@ let isSoundEnabled = localStorage.getItem('pp_admin_sound') !== 'false';
 let knownOrderIds = new Set();
 window.adminSearchQuery = '';
 
+let globalAudioCtx = null;
+
+function getAudioContext() {
+  if (!globalAudioCtx) {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (AudioCtx) {
+      globalAudioCtx = new AudioCtx();
+    }
+  }
+  if (globalAudioCtx && globalAudioCtx.state === 'suspended') {
+    globalAudioCtx.resume().catch(() => {});
+  }
+  return globalAudioCtx;
+}
+
+// Unlock audio context on any user click anywhere on admin page
+document.addEventListener('click', () => {
+  getAudioContext();
+}, { once: false });
+
 function playOrderChime() {
   if (!isSoundEnabled) return;
   try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
+    const ctx = getAudioContext();
+    if (!ctx) return;
     
     // Tone 1 (E5)
     const osc1 = ctx.createOscillator();
