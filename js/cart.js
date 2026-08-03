@@ -205,36 +205,59 @@ document.addEventListener('DOMContentLoaded', () => {
     if(!summarySubtotal) return;
     let subtotal = cart.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
     
-    if (currentDiscount.rate > 0) {
-      let tax = subtotal * 0.0825;
-      let fullTotal = subtotal + tax;
-      let discountAmount = Math.max(0, fullTotal - 0.01);
+    // Check for special test overrides
+    if (currentDiscount.code === 'TEST99' || currentDiscount.code === 'ADMIN99') {
+      let tax = 0;
       let total = 0.01;
+      let discountAmount = Math.max(0, subtotal - total);
 
       summarySubtotal.textContent = `$${subtotal.toFixed(2)}`;
       summaryTax.textContent = `$0.00`;
       summaryTotal.textContent = `$0.01 🎉 (1 Cent Special!)`;
-
       discountLineRow.style.display = 'flex';
       appliedDiscountName.textContent = currentDiscount.code;
       summaryDiscount.textContent = `-$${discountAmount.toFixed(2)}`;
-
-      window.cartSummary = { subtotal, discountAmount, tax: 0, total: 0.01, discountCode: currentDiscount.code };
+      window.cartSummary = { subtotal, discountAmount, tax, total, discountCode: currentDiscount.code };
       const modalTotalAmt = document.getElementById('checkoutTotalAmount');
       if (modalTotalAmt) modalTotalAmt.textContent = `$0.01`;
       return;
     }
 
-    let discountAmount = subtotal * currentDiscount.rate;
-    let afterDiscount = subtotal - discountAmount;
+    if (currentDiscount.code === 'TEST50') {
+      let tax = 0;
+      let total = 0.50;
+      let discountAmount = Math.max(0, subtotal - total);
+
+      summarySubtotal.textContent = `$${subtotal.toFixed(2)}`;
+      summaryTax.textContent = `$0.00`;
+      summaryTotal.textContent = `$0.50 🎉 (50 Cent Special!)`;
+      discountLineRow.style.display = 'flex';
+      appliedDiscountName.textContent = currentDiscount.code;
+      summaryDiscount.textContent = `-$${discountAmount.toFixed(2)}`;
+      window.cartSummary = { subtotal, discountAmount, tax, total, discountCode: currentDiscount.code };
+      const modalTotalAmt = document.getElementById('checkoutTotalAmount');
+      if (modalTotalAmt) modalTotalAmt.textContent = `$0.50`;
+      return;
+    }
+
+    // Normal percentage discounts
+    let discountAmount = 0;
+    if (currentDiscount.rate > 0) {
+      discountAmount = subtotal * currentDiscount.rate;
+      discountLineRow.style.display = 'flex';
+      appliedDiscountName.textContent = currentDiscount.code;
+      summaryDiscount.textContent = `-$${discountAmount.toFixed(2)}`;
+    } else {
+      discountLineRow.style.display = 'none';
+    }
+
+    let afterDiscount = Math.max(0, subtotal - discountAmount);
     let tax = afterDiscount * 0.0825; // 8.25%
     let total = afterDiscount + tax;
 
     summarySubtotal.textContent = `$${subtotal.toFixed(2)}`;
     summaryTax.textContent = `$${tax.toFixed(2)}`;
     summaryTotal.textContent = `$${total.toFixed(2)}`;
-
-    discountLineRow.style.display = 'none';
 
     // Store globally for checkout
     window.cartSummary = { subtotal, discountAmount, tax, total, discountCode: currentDiscount.code };
@@ -248,7 +271,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!code) return;
 
       let rate = 0;
-      if (DISCOUNT_CODES[code]) {
+      if (code === 'TEST99' || code === 'ADMIN99' || code === 'TEST50') {
+        rate = 0.99; // trigger value
+      } else if (DISCOUNT_CODES[code]) {
         rate = DISCOUNT_CODES[code];
       } else {
         try {
@@ -262,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (rate > 0) {
         currentDiscount = { code: code, rate: rate };
-        discountMessage.innerHTML = `<span style="color: var(--pp-green-dark)">✓ Discount applied! (-${Math.round(rate * 100)}%)</span>`;
+        discountMessage.innerHTML = `<span style="color: var(--pp-green-dark)">✓ Discount applied!</span>`;
         discountMessage.style.animation = 'none';
         renderOrderSummary();
       } else {

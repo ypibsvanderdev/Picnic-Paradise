@@ -238,6 +238,19 @@ function initAdmin(userEmail) {
         }
       });
     }
+
+    // Bulletproof Fallback: Listen for local storage changes from other tabs
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'pp_orders') {
+        try {
+          const newOrders = JSON.parse(e.newValue) || [];
+          window.currentAdminOrders = newOrders;
+          renderDashboardWithOrders(newOrders);
+          renderCustomersWithOrders(newOrders);
+        } catch(err) {}
+      }
+    });
+
   } catch (err) {
     console.error('Error in initAdmin:', err);
   }
