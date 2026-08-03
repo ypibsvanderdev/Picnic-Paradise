@@ -213,6 +213,7 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="js/firebase-config.js"></script>
   <script src="js/data.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/app.js"></script>
@@ -223,6 +224,26 @@
       if (!orderId) {
         window.location.href = 'index.html';
         return;
+      }
+      
+      // 1. First, check if we just came from a successful Stripe checkout and have a pending order
+      const pendingRaw = localStorage.getItem('pp_pending_order');
+      if (pendingRaw) {
+        try {
+          const pendingOrder = JSON.parse(pendingRaw);
+          if (pendingOrder && pendingOrder.orderId === orderId) {
+            // Commit pending order to the real system!
+            if (typeof window.saveOrderToFirebase === 'function') {
+              window.saveOrderToFirebase(pendingOrder); // This saves to localStorage AND firebase
+            } else {
+               const orders = JSON.parse(localStorage.getItem('pp_orders')) || [];
+               orders.push(pendingOrder);
+               localStorage.setItem('pp_orders', JSON.stringify(orders));
+            }
+            // Clear pending now that it's saved
+            localStorage.removeItem('pp_pending_order');
+          }
+        } catch(e) {}
       }
       
       const orders = JSON.parse(localStorage.getItem('pp_orders')) || [];

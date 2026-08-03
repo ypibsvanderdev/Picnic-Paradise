@@ -21,15 +21,9 @@ function getStripe() {
 window.processStripeCheckout = async function(orderData) {
   const stripe = getStripe();
   
-  // Save order details to local storage before processing
-  let orders = PPUtils.getStorage('pp_orders') || [];
-  orders.push(orderData);
-  PPUtils.setStorage('pp_orders', orders);
-
-  // Sync to Cloud Firestore if connected
-  if (typeof window.saveOrderToFirebase === 'function') {
-    window.saveOrderToFirebase(orderData);
-  }
+  // Save order details to a PENDING local storage key before processing.
+  // We will only commit it to the real system after successful payment.
+  localStorage.setItem('pp_pending_order', JSON.stringify(orderData));
 
   try {
     // Call our API to create a Stripe Checkout Session — give it up to 15 seconds
