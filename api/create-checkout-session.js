@@ -11,17 +11,10 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  const stripeKey = (process.env.STRIPE_SECRET_KEY || '').trim();
   
-  // Debug: show what env vars look like
   if (!stripeKey) {
-    return res.status(500).json({ 
-      error: 'STRIPE_SECRET_KEY value is empty or missing',
-      key_exists: 'STRIPE_SECRET_KEY' in process.env,
-      key_type: typeof stripeKey,
-      key_length: stripeKey ? stripeKey.length : 0,
-      key_value_preview: stripeKey === '' ? 'EMPTY_STRING' : stripeKey === undefined ? 'UNDEFINED' : stripeKey === null ? 'NULL' : 'OTHER_FALSY'
-    });
+    return res.status(500).json({ error: 'STRIPE_SECRET_KEY not configured on Vercel' });
   }
 
   try {
