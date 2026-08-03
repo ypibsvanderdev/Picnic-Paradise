@@ -272,30 +272,20 @@ window.PPUtils = {
     });
   },
 
-  // QR Code Renderer Helper with Local Canvas Generation
+  // QR Code Renderer Helper using highly reliable image API with fallback
   renderQRCodeHTML: (orderId, containerEl) => {
     if (!containerEl) return;
     const text = `PP-ORDER:${orderId}`;
     
     containerEl.innerHTML = `
       <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px; background:#fff; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
-        <canvas id="qrCanvas_${orderId}"></canvas>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(text)}&color=0f172a" 
+             alt="QR Code #${orderId}" 
+             style="width:160px; height:160px; border-radius:10px; display:block;"
+             onerror="this.onerror=null; this.src='https://chart.googleapis.com/chart?cht=qr&chs=160x160&chl=${encodeURIComponent(text)}';">
         <div style="margin-top:8px; font-weight:700; font-size:0.9rem; color:var(--pp-primary-dark,#2563eb); font-family:monospace;">#${(orderId||'').replace('PP-','')}</div>
       </div>
     `;
-    
-    // Defer slightly to ensure canvas is in DOM
-    setTimeout(() => {
-      const canvas = document.getElementById(`qrCanvas_${orderId}`);
-      if (canvas && typeof QRCode !== 'undefined') {
-        QRCode.toCanvas(canvas, text, { width: 160, margin: 1, color: { dark: '#0f172a', light: '#ffffff' } }, function (error) {
-          if (error) console.error('QR Generate Error:', error);
-        });
-      } else if (canvas) {
-        // Fallback to Google chart if library didn't load
-        containerEl.innerHTML = `<img src="https://chart.googleapis.com/chart?cht=qr&chs=180x180&chl=${encodeURIComponent(text)}" alt="QR Code" style="width:160px; border-radius:10px;">`;
-      }
-    }, 50);
   }
 };
 
