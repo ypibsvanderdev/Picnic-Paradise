@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Your order is confirmed at Picnic Paradise.">
-  <title>Order Confirmed | Picnic Paradise</title>
+  <title>Order Confirmed | Picnic Paradise (Updated v2)</title>
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -234,7 +234,38 @@
       let orders = JSON.parse(localStorage.getItem('pp_orders')) || [];
       let order = orders.find(o => o.orderId === orderId);
       
-      // If order is missing (e.g. cross-browser redirect wiped localStorage), fetch from Firebase directly!
+      // If order is missing (e.g. cross-browser redirect wiped localStorage), reconstruct directly from URL parameters!
+      if (!order) {
+        const nameParam = urlParams.get('name') || 'Picnic Guest';
+        const emailParam = urlParams.get('email') || '';
+        const totalParam = parseFloat(urlParams.get('total')) || 0.50;
+        let itemsParam = [];
+        try {
+          itemsParam = JSON.parse(urlParams.get('items') || '[]');
+        } catch(e) {}
+
+        if (itemsParam.length > 0 || urlParams.get('total')) {
+          order = {
+            orderId: orderId,
+            customerName: nameParam,
+            customerEmail: emailParam,
+            items: itemsParam,
+            total: totalParam,
+            status: 'pending',
+            pickupTime: '12:00 PM',
+            timestamp: new Date().toISOString(),
+            paymentMethod: 'Credit Card 💳'
+          };
+          orders.push(order);
+          localStorage.setItem('pp_orders', JSON.stringify(orders));
+
+          if (typeof window.saveOrderToFirebase === 'function') {
+            window.saveOrderToFirebase(order);
+          }
+        }
+      }
+
+      // If still missing, check Firebase as fallback
       if (!order && typeof firebase !== 'undefined' && firebase.firestore) {
         try {
           const db = firebase.firestore();
@@ -247,20 +278,6 @@
         } catch(e) {
           console.warn('Could not fetch order from Firebase fallback:', e);
         }
-      }
-
-      // If they had a pending order from old logic, handle it for backwards compatibility
-      const pendingRaw = localStorage.getItem('pp_pending_order');
-      if (pendingRaw && !order) {
-        try {
-          const pendingOrder = JSON.parse(pendingRaw);
-          if (pendingOrder && pendingOrder.orderId === orderId) {
-            order = pendingOrder;
-            orders.push(order);
-            localStorage.setItem('pp_orders', JSON.stringify(orders));
-            localStorage.removeItem('pp_pending_order');
-          }
-        } catch(e) {}
       }
       
       if (!order) {

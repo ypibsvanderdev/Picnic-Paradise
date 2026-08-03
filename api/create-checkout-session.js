@@ -23,6 +23,23 @@ module.exports = async (req, res) => {
 
     const origin = req.headers.origin || `https://${req.headers.host}`;
 
+    const itemsJson = JSON.stringify((items || []).map(i => ({
+      name: i.name || 'Item',
+      quantity: i.quantity || 1,
+      unitPrice: i.unitPrice || 0,
+      size: i.size || '',
+      flavor: i.flavor || ''
+    })));
+
+    const params = new URLSearchParams({
+      id: orderId || '',
+      name: customerName || 'Picnic Guest',
+      email: customerEmail || '',
+      total: (total || 0.50).toString(),
+      items: itemsJson,
+      payment: 'success'
+    });
+
     const session = await stripe.checkout.sessions.create({
       customer_email: customerEmail || undefined,
       line_items: [{
@@ -37,7 +54,7 @@ module.exports = async (req, res) => {
         quantity: 1
       }],
       mode: 'payment',
-      success_url: `${origin}/order-confirmation.html?id=${orderId}&payment=success`,
+      success_url: `${origin}/order-confirmation.html?${params.toString()}`,
       cancel_url: `${origin}/cart.html?payment=cancelled`,
       metadata: {
         orderId: orderId,
