@@ -268,10 +268,11 @@ function renderDashboardWithOrders(orders) {
     let hasNewOrder = false;
     (orders || []).forEach(o => {
       if (o && o.orderId && !knownOrderIds.has(o.orderId)) {
-        if (knownOrderIds.size > 0) hasNewOrder = true;
+        if (window.adminInitialLoadDone) hasNewOrder = true;
         knownOrderIds.add(o.orderId);
       }
     });
+    window.adminInitialLoadDone = true;
     if (hasNewOrder) playOrderChime();
 
     let totalRev = 0;
