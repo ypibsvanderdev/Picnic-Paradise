@@ -437,7 +437,9 @@ function initHomepage() {
     { itemId: 'mango-lemonade', name: 'Mango Lemonade', category: 'lemonade', price: 5, emoji: '🍋', gradient: '#f6d365, #fda085', featured: true, rating: '4.8' },
     { itemId: 'iced-coffee', name: 'Iced Vanilla Latte', category: 'coffee', price: 4, emoji: '☕', gradient: '#a18cd1, #fbc2eb', featured: true, rating: '4.7' },
     { itemId: 'choc-brownie', name: 'Fudge Brownie', category: 'brownies', price: 3, emoji: '🍫', gradient: '#434343, #000000', featured: true, rating: '5.0' },
-    { itemId: 'strawberry-cake-pop', name: 'Strawberry Cake Pop', category: 'cake-pops', price: 4, emoji: '🍰', gradient: '#f093fb, #f5576c', featured: true, rating: '4.6' },
+    { itemId: 'cake-pop-cookies-and-cream', name: 'Cookies and Cream Cake Pop', category: 'cake-pops', price: 4, emoji: '🍰', gradient: '#f093fb, #f5576c', featured: true, rating: '4.9' },
+    { itemId: 'baklawa-pistachio', name: 'Pistachio Baklawa', category: 'baklawa', price: 4, emoji: '🍯', gradient: '#f7971e, #ffd200', featured: true, rating: '4.9' },
+    { itemId: 'kanafa-traditional', name: 'Warm Kanafa', category: 'kanafa', price: 6, emoji: '🥮', gradient: '#ff9966, #ff5e62', featured: true, rating: '5.0' },
     { itemId: 'peach-tea', name: 'Peach Iced Tea', category: 'tea', price: 4, emoji: '🍵', gradient: '#89f7fe, #66a6ff', featured: true, rating: '4.8' }
   ];
 

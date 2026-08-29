@@ -20,7 +20,9 @@ const CATEGORIES = [
   { id: 'arabic-coffee', label: 'Arabic Coffee', type: 'drink', emoji: '☕', gradient: 'linear-gradient(135deg, #c79081, #dfa579)' },
   { id: 'arabic-tea', label: 'Arabic Tea', type: 'drink', emoji: '🫖', gradient: 'linear-gradient(135deg, #f5af19, #f12711)' },
   { id: 'brownies', label: 'Brownies', type: 'dessert', emoji: '🍫', gradient: 'linear-gradient(135deg, #434343, #000000)' },
-  { id: 'cake-pops', label: 'Cake Pops', type: 'dessert', emoji: '🍰', gradient: 'linear-gradient(135deg, #f093fb, #f5576c)' }
+  { id: 'cake-pops', label: 'Cake Pops', type: 'dessert', emoji: '🍰', gradient: 'linear-gradient(135deg, #f093fb, #f5576c)' },
+  { id: 'baklawa', label: 'Baklawa', type: 'dessert', emoji: '🍯', gradient: 'linear-gradient(135deg, #f7971e, #ffd200)' },
+  { id: 'kanafa', label: 'Kanafa', type: 'dessert', emoji: '🥮', gradient: 'linear-gradient(135deg, #ff9966, #ff5e62)' }
 ];
 
 const MENU_ITEMS = [
@@ -226,23 +228,61 @@ const MENU_ITEMS = [
     featured: true
   },
   {
-    id: 'cake-pop-vanilla',
-    name: 'Vanilla Cake Pop',
+    id: 'cake-pop-cookies-and-cream',
+    name: 'Cookies and Cream Cake Pop',
     category: 'cake-pops',
     categoryLabel: 'Cake Pops',
     type: 'dessert',
     subtype: null,
-    description: 'Moist vanilla cake coated in a crisp shell with festive sprinkles.',
+    description: 'Rich chocolate and vanilla cake mixed with crushed cookies, coated in a sweet cream shell and cookie crumbles.',
     prices: { single: 4 },
-    flavors: ['Chocolate', 'Vanilla', 'Strawberry', 'Birthday Cake'],
+    flavors: ['Cookies & Cream', 'Chocolate', 'Vanilla', 'Strawberry', 'Birthday Cake'],
     addIns: null,
     emoji: '🍰',
     gradient: 'linear-gradient(135deg, #f093fb, #f5576c)',
-    rating: 4.6,
-    reviews: 180,
+    rating: 4.9,
+    reviews: 220,
     soldOut: false,
-    popular: false,
-    featured: false
+    popular: true,
+    featured: true
+  },
+  {
+    id: 'baklawa-pistachio',
+    name: 'Pistachio Baklawa',
+    category: 'baklawa',
+    categoryLabel: 'Baklawa',
+    type: 'dessert',
+    subtype: null,
+    description: 'Crisp layers of delicate flaky phyllo pastry filled with chopped pistachios and sweetened with fragrant orange blossom honey syrup.',
+    prices: { single: 4 },
+    flavors: ['Pistachio', 'Walnut', 'Mixed Assortment'],
+    addIns: null,
+    emoji: '🍯',
+    gradient: 'linear-gradient(135deg, #f7971e, #ffd200)',
+    rating: 4.9,
+    reviews: 260,
+    soldOut: false,
+    popular: true,
+    featured: true
+  },
+  {
+    id: 'kanafa-traditional',
+    name: 'Warm Kanafa',
+    category: 'kanafa',
+    categoryLabel: 'Kanafa',
+    type: 'dessert',
+    subtype: null,
+    description: 'Golden, crispy shredded kataifi pastry baked over sweet melted cheese, drenched in warm rosewater syrup and topped with crushed pistachios.',
+    prices: { single: 6 },
+    flavors: ['Sweet Cheese', 'Cream (Ashta)'],
+    addIns: null,
+    emoji: '🥮',
+    gradient: 'linear-gradient(135deg, #ff9966, #ff5e62)',
+    rating: 5.0,
+    reviews: 310,
+    soldOut: false,
+    popular: true,
+    featured: true
   }
 ];
 

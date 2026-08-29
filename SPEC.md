@@ -273,7 +273,9 @@ Page-specific additions:
 | arabic-coffee | Arabic Coffee | drink | hot | ☕ | #c79081 → #dfa579 |
 | arabic-tea | Arabic Tea | drink | hot | 🫖 | #f5af19 → #f12711 |
 | brownies | Brownies | dessert | null | 🍫 | #434343 → #000000 |
-| cake-pops | Cake Pops | dessert | null | 🍰 | #f093fb → #f5576c |
+| cake-pops | Cake Pops | dessert | null | 🍰 | #f093fb ➔ #f5576c |
+| baklawa | Baklawa | dessert | null | 🍯 | #f7971e ➔ #ffd200 |
+| kanafa | Kanafa | dessert | null | 🥮 | #ff9966 ➔ #ff5e62 |
 
 ### Pricing
 | Category | Small | Medium | Large | Single |
@@ -286,13 +288,17 @@ Page-specific additions:
 | Arabic Tea | $2 | $4 | $8 | - |
 | Brownies | - | - | - | $1 |
 | Cake Pops | - | - | - | $4 |
+| Baklawa | - | - | - | $4 |
+| Kanafa | - | - | - | $6 |
 
 ### Flavors/Options
 - **Slushies**: Blue Raspberry, Cherry, Strawberry, Mango, Watermelon, Lemon Lime
 - **Lemonade add-ins**: Strawberry, Mango, Mint
 - **Coffee types**: Espresso, Americano, Latte, Cappuccino, Mocha, Iced Coffee
 - **Tea types**: Black Tea, Green Tea, Herbal Tea, Iced Tea
-- **Cake Pop flavors**: Chocolate, Vanilla, Strawberry, Birthday Cake
+- **Cake Pop flavors**: Cookies & Cream, Chocolate, Vanilla, Strawberry, Birthday Cake
+- **Baklawa flavors**: Pistachio, Walnut, Mixed Assortment
+- **Kanafa flavors**: Sweet Cheese, Cream (Ashta)
 
 ## Key CSS Classes
 
