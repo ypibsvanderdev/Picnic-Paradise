@@ -287,9 +287,9 @@ Page-specific additions:
 | Arabic Coffee | $2 | $4 | $8 | - |
 | Arabic Tea | $2 | $4 | $8 | - |
 | Brownies | - | - | - | $1 |
-| Cake Pops | - | - | - | $4 |
-| Baklawa | - | - | - | $4 |
-| Kanafa | - | - | - | $6 |
+| Cake Pops | - | - | - | $3 |
+| Baklawa | - | - | - | $1 |
+| Kanafa | - | - | - | $2 |
 
 ### Flavors/Options
 - **Slushies**: Blue Raspberry, Cherry, Strawberry, Mango, Watermelon, Lemon Lime
