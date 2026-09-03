@@ -71,6 +71,10 @@
     .order-total{background:linear-gradient(135deg,#f5f0ff,#ede9fe);border-radius:14px;padding:16px 20px;margin:20px 0;display:flex;justify-content:space-between;align-items:center;}
     .order-total span{font-weight:700;color:var(--muted);}
     .order-total strong{font-family:"Fredoka One",cursive;font-size:1.6rem;color:var(--primary);}
+    .pay-methods{display:flex;gap:0;margin-bottom:20px;border-radius:14px;overflow:hidden;border:2px solid #e8e8e8;}
+    .pay-method{flex:1;padding:14px;text-align:center;font-weight:800;font-size:.95rem;cursor:pointer;transition:all .2s;background:white;border:none;font-family:"Nunito",sans-serif;color:var(--muted);}
+    .pay-method.active{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;}
+    .pay-method:hover:not(.active){background:#f5f0ff;color:var(--primary);}
     .submit-btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border:none;border-radius:16px;font-family:"Fredoka One",cursive;font-size:1.3rem;cursor:pointer;transition:transform .2s,box-shadow .2s;box-shadow:0 6px 20px rgba(139,92,246,0.4);}
     .submit-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 30px rgba(139,92,246,0.5);}
     .submit-btn:disabled{background:#ddd;color:#999;cursor:not-allowed;box-shadow:none;}
@@ -91,6 +95,7 @@
     @keyframes spin{to{transform:rotate(360deg)}}
     @media(max-width:500px){.product-grid{grid-template-columns:1fr;}}
   </style>
+  <script src="https://js.stripe.com/v3/"></script>
 </head>
 <body>
 
@@ -159,6 +164,13 @@
         <div class="form-group">
           <label>Order Notes (optional)</label>
           <textarea id="customerMessage" placeholder="Any color preferences, custom requests, or notes..." rows="2"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Payment Method <span>*</span></label>
+          <div class="pay-methods">
+            <button type="button" class="pay-method active" data-method="cash" onclick="selectPayMethod('cash')">\u{1F4B5} Pay in Cash</button>
+            <button type="button" class="pay-method" data-method="online" onclick="selectPayMethod('online')">\u{1F4B3} Pay Online</button>
+          </div>
         </div>
         <div class="order-total">
           <span>Order Total:</span>
@@ -284,47 +296,204 @@
     document.getElementById('orderTotal').textContent = '\$' + (selectedProduct.price * quantity).toFixed(2);
   }
 
-  document.getElementById('orderForm').addEventListener('submit', function(e) {
+  let paymentMethod = 'cash';
+  window.selectPayMethod = function(method) {
+    paymentMethod = method;
+    document.querySelectorAll('.pay-method').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.method === method);
+    });
+    // Update button text
+    const btn = document.getElementById('submitBtn');
+    if (method === 'cash') {
+      btn.textContent = '\u{1F6D2} Place Order (Pay in Cash)';
+    } else {
+      btn.textContent = '\u{1F4B3} Place Order & Pay Online';
+    }
+  };
+
+  // Stripe publishable key
+  const STRIPE_PK = localStorage.getItem('pp_stripe_pk') || 'pk_live_51Tzmw4LXU4os5QyXVR72hFVpCQPyKW5tRbqXnlhuKwmaFlRlhmdHw8aGZzBVtmfO9OmRp4UrndaL2IXQHEXbEBqF00ix5aeQSG';
+  let stripeInstance = null;
+  function getStripe() {
+    if (!stripeInstance && typeof Stripe !== 'undefined' && STRIPE_PK) {
+      try { stripeInstance = Stripe(STRIPE_PK); } catch(e) { console.warn('Stripe init:', e); }
+    }
+    return stripeInstance;
+  }
+
+  // Check URL for payment success callback
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('payment') === 'success') {
+    const oid = urlParams.get('id') || 'SP-OK';
+    showToast('Payment successful! Order ' + oid + ' confirmed.');
+    // Mark order as paid in localStorage
+    const allOrders = JSON.parse(localStorage.getItem('pp_orders') || '[]');
+    const foundOrder = allOrders.find(o => o.orderId === oid);
+    if (foundOrder && foundOrder.status === 'unpaid') {
+      foundOrder.status = 'pending';
+      localStorage.setItem('pp_orders', JSON.stringify(allOrders));
+    }
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+  if (urlParams.get('payment') === 'cancelled') {
+    showToast('Payment was cancelled. Your order is saved - you can try again.');
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  document.getElementById('orderForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const name = document.getElementById('customerName').value.trim();
     const phone = document.getElementById('customerPhone').value.trim();
     const message = document.getElementById('customerMessage').value.trim();
     if (!name) { showToast('Please enter your name'); document.getElementById('customerName').focus(); return; }
     if (!phone || phone.length < 7) { showToast('Please enter a valid phone number'); document.getElementById('customerPhone').focus(); return; }
+
     const btn = document.getElementById('submitBtn');
-    btn.disabled = true; btn.textContent = 'Placing order...';
-    setTimeout(function() {
-      const orderId = 'SP-' + Date.now().toString().slice(-6);
-      const order = {
-        orderId: orderId,
-        customerName: name,
-        customerPhone: phone,
-        productId: selectedProduct.id,
-        productName: selectedProduct.name,
-        productPrice: selectedProduct.price,
-        quantity: quantity,
-        total: selectedProduct.price * quantity,
-        message: message,
-        status: 'pending',
-        timestamp: new Date().toISOString()
-      };
-      const orders = JSON.parse(localStorage.getItem('pp_orders') || '[]');
-      orders.push(order);
-      localStorage.setItem('pp_orders', JSON.stringify(orders));
-      // Decrement stock
-      const overrides = JSON.parse(localStorage.getItem('pp_menu_overrides') || '{}');
-      const current = overrides[selectedProduct.id] || {};
-      const curStock = (current.stock !== undefined) ? current.stock : selectedProduct.stock;
-      current.stock = Math.max(0, curStock - quantity);
-      overrides[selectedProduct.id] = current;
-      localStorage.setItem('pp_menu_overrides', JSON.stringify(overrides));
-      window.dispatchEvent(new Event('inventoryUpdated'));
+    btn.disabled = true; btn.textContent = paymentMethod === 'cash' ? 'Placing order...' : 'Processing payment...';
+
+    const orderId = 'SP-' + Date.now().toString().slice(-6);
+    const total = selectedProduct.price * quantity;
+    const order = {
+      orderId: orderId,
+      customerName: name,
+      customerPhone: phone,
+      productId: selectedProduct.id,
+      productName: selectedProduct.name,
+      productPrice: selectedProduct.price,
+      quantity: quantity,
+      total: total,
+      message: message,
+      status: 'unpaid',
+      timestamp: new Date().toISOString()
+    };
+
+    // Save order locally first (as unpaid)
+    const orders = JSON.parse(localStorage.getItem('pp_orders') || '[]');
+    orders.push(order);
+    localStorage.setItem('pp_orders', JSON.stringify(orders));
+
+    // Decrement stock
+    const overrides = JSON.parse(localStorage.getItem('pp_menu_overrides') || '{}');
+    const current = overrides[selectedProduct.id] || {};
+    const curStock = (current.stock !== undefined) ? current.stock : selectedProduct.stock;
+    current.stock = Math.max(0, curStock - quantity);
+    overrides[selectedProduct.id] = current;
+    localStorage.setItem('pp_menu_overrides', JSON.stringify(overrides));
+    window.dispatchEvent(new Event('inventoryUpdated'));
+
+    // If paying in cash, skip Stripe entirely
+    if (paymentMethod === 'cash') {
+      order.status = 'pending';
+      order.paymentMethod = 'Cash on meetup';
+      const updatedOrders2 = JSON.parse(localStorage.getItem('pp_orders') || '[]');
+      const idx2 = updatedOrders2.findIndex(o => o.orderId === orderId);
+      if (idx2 !== -1) updatedOrders2[idx2] = order;
+      localStorage.setItem('pp_orders', JSON.stringify(updatedOrders2));
       document.getElementById('modalBody').style.display = 'none';
       document.getElementById('orderIdBadge').textContent = 'Order #' + orderId;
+      document.getElementById('successScreen').querySelector('p').textContent = 'Your order has been received! Have your cash ready (\
+      try {
+        const origin = window.location.origin;
+        const successParams = new URLSearchParams({ payment: 'success', id: orderId, name: name }).toString();
+        const cancelParams = new URLSearchParams({ payment: 'cancelled', id: orderId }).toString();
+
+        // Use Stripe Payment Links / Checkout in client-only mode
+        const response = await fetch('/api/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId, customerName: name, customerEmail: '', total,
+            items: [{ name: selectedProduct.name, quantity, unitPrice: selectedProduct.price }]
+          })
+        });
+
+        if (response.ok) {
+          const session = await response.json();
+          if (session && session.url) {
+            window.location.href = session.url;
+            return;
+          }
+        }
+      } catch(err) {
+        console.warn('Stripe API unavailable, completing order locally:', err.message);
+      }
+    }
+
+    // Fallback: complete order locally (no Stripe backend available)
+    order.status = 'pending';
+    const updatedOrders = JSON.parse(localStorage.getItem('pp_orders') || '[]');
+    const idx = updatedOrders.findIndex(o => o.orderId === orderId);
+    if (idx !== -1) updatedOrders[idx].status = 'pending';
+    localStorage.setItem('pp_orders', JSON.stringify(updatedOrders));
+
+    document.getElementById('modalBody').style.display = 'none';
+    document.getElementById('orderIdBadge').textContent = 'Order #' + orderId;
+    document.getElementById('successScreen').classList.add('active');
+    btn.disabled = false; btn.textContent = paymentMethod === 'cash' ? '\u{1F6D2} Place Order (Pay in Cash)' : '\u{1F4B3} Place Order & Pay Online';
+    renderProducts();
+  });
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 3000);
+  }
+
+  window.addEventListener('inventoryUpdated', renderProducts);
+  renderProducts();
+</script>
+</body>
+</html> + total.toFixed(2) + ') when you meet up.';
       document.getElementById('successScreen').classList.add('active');
-      btn.disabled = false; btn.textContent = '\u{1F6D2} Place Order!';
+      btn.disabled = false; btn.textContent = '\u{1F6D2} Place Order (Pay in Cash)';
       renderProducts();
-    }, 800);
+      return;
+    }
+
+    // Try Stripe Checkout (online payment)
+    order.paymentMethod = 'Online (Stripe)';
+    const stripe = getStripe();
+    if (stripe) {
+      try {
+        const origin = window.location.origin;
+        const successParams = new URLSearchParams({ payment: 'success', id: orderId, name: name }).toString();
+        const cancelParams = new URLSearchParams({ payment: 'cancelled', id: orderId }).toString();
+
+        // Use Stripe Payment Links / Checkout in client-only mode
+        const response = await fetch('/api/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId, customerName: name, customerEmail: '', total,
+            items: [{ name: selectedProduct.name, quantity, unitPrice: selectedProduct.price }]
+          })
+        });
+
+        if (response.ok) {
+          const session = await response.json();
+          if (session && session.url) {
+            window.location.href = session.url;
+            return;
+          }
+        }
+      } catch(err) {
+        console.warn('Stripe API unavailable, completing order locally:', err.message);
+      }
+    }
+
+    // Fallback: complete order locally (no Stripe backend available)
+    order.status = 'pending';
+    const updatedOrders = JSON.parse(localStorage.getItem('pp_orders') || '[]');
+    const idx = updatedOrders.findIndex(o => o.orderId === orderId);
+    if (idx !== -1) updatedOrders[idx].status = 'pending';
+    localStorage.setItem('pp_orders', JSON.stringify(updatedOrders));
+
+    document.getElementById('modalBody').style.display = 'none';
+    document.getElementById('orderIdBadge').textContent = 'Order #' + orderId;
+    document.getElementById('successScreen').classList.add('active');
+    btn.disabled = false; btn.textContent = '\u{1F6D2} Place Order!';
+    renderProducts();
   });
 
   function showToast(msg) {

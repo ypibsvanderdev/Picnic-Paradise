@@ -94,6 +94,15 @@
     .empty-state .emoji{font-size:3rem;margin-bottom:12px;}
     @media(max-width:768px){.sidebar{display:none;}.content{margin-left:0;}}
   </style>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <style>
+    .divider{display:flex;align-items:center;gap:12px;margin:24px 0;color:var(--muted);font-size:.85rem;font-weight:700;}
+    .divider::before,.divider::after{content:'';flex:1;height:1px;background:#e0e0e0;}
+    .google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:14px 20px;background:white;border:2px solid #e0e0e0;border-radius:50px;font-family:"Nunito",sans-serif;font-size:1rem;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+    .google-btn:hover{border-color:var(--primary);box-shadow:0 4px 16px rgba(139,92,246,0.2);}
+    .google-btn svg{width:22px;height:22px;}
+  </style>
 </head>
 <body>
 
@@ -103,6 +112,11 @@
     <div class="logo">🖨️</div>
     <h1>The Sugar Printer</h1>
     <p>Admin Dashboard</p>
+    <button class="google-btn" id="googleLoginBtn">
+      <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Sign in with Google
+    </button>
+    <div class="divider">OR USE PASSWORD</div>
     <form id="loginForm">
       <input type="password" id="adminPass" placeholder="Enter admin password" required>
       <button type="submit" class="login-btn">🔒 Login</button>
@@ -184,7 +198,7 @@
     { id:'item-needoh-classic', name:'NeeDoh Classic Groovy Glob', description:'Super squishy stress ball that always bounces back!', price:4.50, image:'', stock:1, emoji:'🫧', category:'fidgets' },
     { id:'item-needoh-nice-berg', name:'NeeDoh Nice Berg', description:'Crystal-clear translucent iceberg squeeze block!', price:6, image:'', stock:1, emoji:'🧊', category:'fidgets' }
   ];
-  const VALID_PASSWORDS = ['admin','picnic2026','sugar2026'];
+  const VALID_PASSWORDS = ['9326'];
 
   function getProducts() {
     const custom = JSON.parse(localStorage.getItem('pp_custom_items') || '[]');
@@ -383,6 +397,51 @@
   }
 
   window.addEventListener('inventoryUpdated', renderAll);
+
+  // Firebase Auth
+  const firebaseConfig = {
+    apiKey: "AIzaSyAsbnd7Ubbc_KH3Ilvnw9PtPEdaNMsu9cE",
+    authDomain: "uday-and-veer-snack-shop.firebaseapp.com",
+    projectId: "uday-and-veer-snack-shop",
+    storageBucket: "uday-and-veer-snack-shop.firebasestorage.app",
+    messagingSenderId: "1005144962617",
+    appId: "1:1005144962617:web:1f4c9847c47cad62127fe8"
+  };
+  firebase.initializeApp(firebaseConfig);
+
+  document.getElementById('googleLoginBtn').addEventListener('click', function() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    firebase.auth().signInWithPopup(provider).then(function(result) {
+      document.getElementById('loginPage').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      document.getElementById('accessDenied').style.display = 'none';
+      // Show who's logged in
+      const user = result.user;
+      document.querySelector('.sidebar-logo p').textContent = user.displayName || user.email;
+      renderAll();
+    }).catch(function(err) {
+      console.error('Google sign-in error:', err);
+      document.getElementById('accessDenied').style.display = 'block';
+      document.getElementById('accessDenied').textContent = '\u274C ' + (err.message || 'Sign-in failed');
+    });
+  });
+
+  // Check if already signed in
+  firebase.auth().onAuthStateChanged(function(user) {
+    if (user) {
+      document.getElementById('loginPage').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      document.querySelector('.sidebar-logo p').textContent = user.displayName || user.email;
+      renderAll();
+    }
+  });
+
+  // Update signOut to also sign out of Firebase
+  window.signOut = function() {
+    firebase.auth().signOut().catch(function(){});
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('loginPage').style.display = 'flex';
+  };
 </script>
 </body>
 </html>
