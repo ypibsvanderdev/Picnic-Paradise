@@ -622,52 +622,136 @@
     executeOnlinePayment(walletName, name, phone, message);
   };
 
-  function executeOnlinePayment(methodLabel, name, phone, message) {
-    showToast('Authorizing with ' + methodLabel + '...');
+  // Check for returning Stripe customers from real Stripe hosted checkout
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('payment') === 'success') {
+    const oid = urlParams.get('id') || urlParams.get('client_reference_id') || 'SP-OK';
+    showToast('🎉 Stripe payment confirmed! Order ' + oid + ' secured.');
+    const orders = getOrders();
+    const found = orders.find(o => o.orderId === oid);
+    if (found && !found.stockDecremented) {
+      found.status = 'confirmed';
+      found.stockDecremented = true;
+      localStorage.setItem('pp_orders', JSON.stringify(orders));
+      const overrides = JSON.parse(localStorage.getItem('pp_menu_overrides') || '{}');
+      const prods = getProducts();
+      const p = prods.find(x => x.id === found.productId);
+      if (p) {
+        const curStock = (overrides[p.id] && overrides[p.id].stock !== undefined) ? overrides[p.id].stock : p.stock;
+        const newStock = Math.max(0, parseInt(curStock, 10) - (found.quantity || 1));
+        if (!overrides[p.id]) overrides[p.id] = {};
+        overrides[p.id].stock = newStock;
+        localStorage.setItem('pp_menu_overrides', JSON.stringify(overrides));
+      }
+      window.dispatchEvent(new Event('inventoryUpdated'));
+    }
+    window.history.replaceState({}, '', window.location.pathname);
+  } else if (urlParams.get('payment') === 'cancelled') {
+    showToast('Payment was cancelled. You can try again anytime.');
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  async function executeOnlinePayment(methodLabel, name, phone, message) {
     const orderId = 'SP-' + Date.now().toString().slice(-6);
     const total = selectedProduct.price * quantity;
 
-    setTimeout(function() {
-      const order = {
-        orderId: orderId,
-        customerName: name,
-        customerPhone: phone,
-        productId: selectedProduct.id,
-        productName: selectedProduct.name,
-        productPrice: selectedProduct.price,
-        quantity: quantity,
-        total: total,
-        message: message,
-        paymentMethod: methodLabel,
-        status: 'confirmed',
-        stockDecremented: true,
-        timestamp: new Date().toISOString()
-      };
+    const paymentLink = localStorage.getItem('pp_stripe_payment_link');
+    const stripeSk = localStorage.getItem('pp_stripe_sk');
+    const vercelUrl = localStorage.getItem('pp_vercel_url');
 
-      // Save order
+    // 1. Stripe Payment Link (Redirects straight to real Stripe with genuine Apple Pay)
+    if (paymentLink && paymentLink.startsWith('http')) {
+      showToast('Redirecting to Stripe Checkout...');
+      const order = {
+        orderId: orderId, customerName: name, customerPhone: phone,
+        productId: selectedProduct.id, productName: selectedProduct.name,
+        productPrice: selectedProduct.price, quantity: quantity, total: total,
+        message: message, paymentMethod: 'Stripe (' + methodLabel + ')',
+        status: 'unpaid', stockDecremented: false, timestamp: new Date().toISOString()
+      };
       const orders = getOrders();
       orders.push(order);
       localStorage.setItem('pp_orders', JSON.stringify(orders));
 
-      // DEDUCT STOCK IMMEDIATELY FOR ONLINE PAYMENT
-      const overrides = JSON.parse(localStorage.getItem('pp_menu_overrides') || '{}');
-      const curStock = (overrides[selectedProduct.id] && overrides[selectedProduct.id].stock !== undefined)
-        ? overrides[selectedProduct.id].stock : selectedProduct.stock;
-      const newStock = Math.max(0, curStock - quantity);
-      if (!overrides[selectedProduct.id]) overrides[selectedProduct.id] = {};
-      overrides[selectedProduct.id].stock = newStock;
-      localStorage.setItem('pp_menu_overrides', JSON.stringify(overrides));
+      setTimeout(function() {
+        window.location.href = paymentLink + (paymentLink.includes('?') ? '&' : '?') + 'client_reference_id=' + orderId;
+      }, 700);
+      return;
+    }
 
-      window.dispatchEvent(new Event('inventoryUpdated'));
+    // 2. Stripe Secret Key (Generates real Stripe checkout session on api.stripe.com)
+    if (stripeSk && stripeSk.startsWith('sk_')) {
+      showToast('Opening Stripe Checkout...');
+      try {
+        const bodyParams = new URLSearchParams();
+        bodyParams.append('payment_method_types[0]', 'card');
+        bodyParams.append('line_items[0][price_data][currency]', 'usd');
+        bodyParams.append('line_items[0][price_data][product_data][name]', selectedProduct.name);
+        bodyParams.append('line_items[0][price_data][unit_amount]', Math.round(selectedProduct.price * 100));
+        bodyParams.append('line_items[0][quantity]', quantity);
+        bodyParams.append('mode', 'payment');
+        bodyParams.append('success_url', window.location.origin + '/?payment=success&id=' + orderId);
+        bodyParams.append('cancel_url', window.location.origin + '/?payment=cancelled');
+        bodyParams.append('client_reference_id', orderId);
 
-      // Show success screen
-      document.getElementById('modalBody').style.display = 'none';
-      document.getElementById('orderIdBadge').textContent = 'Order #' + orderId;
-      document.getElementById('successTitle').textContent = 'Paid with ' + methodLabel + '!';
-      document.getElementById('successMessage').textContent = 'Payment of $' + total.toFixed(2) + ' was approved via ' + methodLabel + '. Stock has been locked in for you!';
-      document.getElementById('successScreen').classList.add('active');
-      renderProducts();
-    }, 900);
+        const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + stripeSk,
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: bodyParams.toString()
+        });
+
+        if (res.ok) {
+          const session = await res.json();
+          if (session && session.url) {
+            const order = {
+              orderId: orderId, customerName: name, customerPhone: phone,
+              productId: selectedProduct.id, productName: selectedProduct.name,
+              productPrice: selectedProduct.price, quantity: quantity, total: total,
+              message: message, paymentMethod: 'Stripe (' + methodLabel + ')',
+              status: 'unpaid', stockDecremented: false, timestamp: new Date().toISOString()
+            };
+            const orders = getOrders();
+            orders.push(order);
+            localStorage.setItem('pp_orders', JSON.stringify(orders));
+
+            window.location.href = session.url;
+            return;
+          }
+        }
+      } catch(err) {
+        console.warn('Direct Stripe API notice:', err);
+      }
+    }
+
+    // 3. Vercel Backend URL
+    if (vercelUrl && vercelUrl.startsWith('http')) {
+      showToast('Connecting to Stripe via Vercel...');
+      try {
+        const res = await fetch(vercelUrl.replace(/\/$/, '') + '/api/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId, customerName: name, total,
+            items: [{ name: selectedProduct.name, quantity, unitPrice: selectedProduct.price }]
+          })
+        });
+        if (res.ok) {
+          const session = await res.json();
+          if (session && session.url) {
+            window.location.href = session.url;
+            return;
+          }
+        }
+      } catch(err) {
+        console.warn('Vercel API error:', err);
+      }
+    }
+
+    // 4. If neither Stripe Link nor Key is set yet, show friendly guidance:
+    alert('⚠️ To redirect to the real Stripe Checkout page with genuine Apple Pay, please enter your Stripe Payment Link or Secret Key in the Admin Dashboard (under the 💳 Stripe Keys tab)!');
   }
 
   // Handle Form Submission (Used for Cash and Card)

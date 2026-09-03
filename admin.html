@@ -124,7 +124,7 @@
     .prod-actions button { padding: 6px 14px; border-radius: 20px; border: none; font-weight: 700; cursor: pointer; font-size: .85rem; transition: all .2s; }
     .btn-delete { background: #fee2e2; color: #ef4444; }
     
-    .add-form { background: var(--card); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow); max-width: 600px; }
+    .add-form { background: var(--card); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow); max-width: 650px; }
     .add-form .form-group { margin-bottom: 18px; }
     .add-form label { display: block; font-weight: 700; margin-bottom: 6px; font-size: .9rem; }
     .add-form label span { color: var(--primary); }
@@ -175,6 +175,7 @@
       <a href="#" class="active" data-tab="orders"><span class="nav-icon">📦</span> Orders <span class="nav-badge" id="ordersBadge">0</span></a>
       <a href="#" data-tab="products"><span class="nav-icon">🏪</span> Products</a>
       <a href="#" data-tab="addproduct"><span class="nav-icon">➕</span> Add Product</a>
+      <a href="#" data-tab="stripe"><span class="nav-icon">💳</span> Stripe Keys</a>
       <a href="#" data-tab="stats"><span class="nav-icon">📊</span> Stats</a>
     </nav>
     <button class="signout-btn" onclick="signOut()">🚪 Sign Out</button>
@@ -189,7 +190,7 @@
     <div class="stats-row" id="statsRow">
       <div class="stat-card stat-pending"><div class="stat-num" id="statPending">0</div><div class="stat-label">Pending Cash</div></div>
       <div class="stat-card stat-approved"><div class="stat-num" id="statApproved">0</div><div class="stat-label">Approved/Paid</div></div>
-      <div class="stat-card stat-rejected"><div class="stat-num" id="statRejected">0</div><div class="stat-label">Total Completed</div></div>
+      <div class="stat-card stat-rejected"><div class="stat-num" id="statRejected">0</div><div class="stat-label">Total Orders</div></div>
       <div class="stat-card stat-revenue"><div class="stat-num" id="statRevenue">$0</div><div class="stat-label">Revenue</div></div>
     </div>
 
@@ -217,6 +218,41 @@
           <div class="form-group"><label>Image (upload file)</label><input type="file" id="newImageFile" accept="image/*"><img id="imgPreview" class="img-preview" style="display:none;"></div>
           <div class="form-group"><label>OR Image URL</label><input type="url" id="newImageUrl" placeholder="https://..."></div>
           <button type="submit" class="login-btn" style="margin-top:12px;">💾 Save Product</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- STRIPE SETTINGS TAB -->
+    <div class="tab-panel" id="tab-stripe">
+      <div class="add-form">
+        <h2 style="margin-bottom:8px;">💳 Stripe &amp; Online Checkout Settings</h2>
+        <p style="color:var(--muted); font-size:0.9rem; margin-bottom:20px;">Connect your real Stripe account so customers get redirected directly to Stripe's hosted Checkout with real Apple Pay, Google Pay, and Cards.</p>
+        
+        <form id="stripeSettingsForm">
+          <div class="form-group">
+            <label>Stripe Publishable Key (pk_live_...)</label>
+            <input type="text" id="cfgStripePk" placeholder="pk_live_..." value="pk_live_51Tzmw4LXU4os5QyXVR72hFVpCQPyKW5tRbqXnlhuKwmaFlRlhmdHw8aGZzBVtmfO9OmRp4UrndaL2IXQHEXbEBqF00ix5aeQSG">
+          </div>
+
+          <div class="form-group">
+            <label>Option A: Stripe Payment Link (Instant Apple Pay &amp; Cards)</label>
+            <input type="url" id="cfgStripePaymentLink" placeholder="https://buy.stripe.com/...">
+            <small style="color:var(--muted); display:block; margin-top:4px;">From Stripe Dashboard &rarr; Payment Links &rarr; Create link. When customers click Pay Online, they redirect directly here!</small>
+          </div>
+
+          <div class="form-group">
+            <label>Option B: Stripe Secret Key (sk_live_... or sk_test_...)</label>
+            <input type="password" id="cfgStripeSk" placeholder="sk_live_...">
+            <small style="color:var(--muted); display:block; margin-top:4px;">Used to create real Stripe Checkout Sessions on demand.</small>
+          </div>
+
+          <div class="form-group">
+            <label>Option C: Vercel API URL</label>
+            <input type="url" id="cfgVercelUrl" placeholder="https://your-app.vercel.app">
+            <small style="color:var(--muted); display:block; margin-top:4px;">If you have your original Vercel checkout backend deployed.</small>
+          </div>
+
+          <button type="submit" class="login-btn" style="margin-top:12px;">💾 Save Stripe Settings</button>
         </form>
       </div>
     </div>
@@ -258,6 +294,7 @@
     if (userLabel) {
       document.getElementById('adminUserDisplay').textContent = userLabel;
     }
+    loadStripeSettings();
     renderAll();
   }
 
@@ -327,7 +364,13 @@
       this.classList.add('active');
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       document.getElementById('tab-' + this.dataset.tab).classList.add('active');
-      const titles = { orders:'📦 Orders & Inventory', products:'🏪 Product Management', addproduct:'➕ Add New Product', stats:'📊 Store Analytics' };
+      const titles = {
+        orders:'📦 Orders & Inventory',
+        products:'🏪 Product Management',
+        addproduct:'➕ Add New Product',
+        stripe:'💳 Stripe & Payment Settings',
+        stats:'📊 Store Analytics'
+      };
       document.querySelector('.page-header h1').textContent = titles[this.dataset.tab] || '';
     });
   });
@@ -352,7 +395,7 @@
     if (orders.length === 0) { list.innerHTML = '<div class="empty-state"><div class="emoji">📦</div><p>No orders yet</p></div>'; return; }
     
     list.innerHTML = orders.map((o,i) => {
-      const isOnline = o.paymentMethod && o.paymentMethod.includes('Paid Online');
+      const isOnline = o.paymentMethod && (o.paymentMethod.includes('Online') || o.paymentMethod.includes('Apple') || o.paymentMethod.includes('Google') || o.paymentMethod.includes('Card') || o.paymentMethod.includes('Stripe'));
       const isOutbid = o.extraDollar || (o.paymentMethod && o.paymentMethod.includes('Outbid'));
       const statusCls = (o.status === 'approved' || o.status === 'confirmed') ? 'approved' : 'pending';
       const badgeCls = statusCls === 'approved' ? 'badge-approved' : 'badge-pending';
@@ -361,7 +404,7 @@
 
       let payPill = '<span class="meta-pill" style="background:#f3f4f6; color:#374151; font-weight:700;">💵 CASH ON MEETUP</span>';
       if (isOnline) {
-        payPill = '<span class="meta-pill" style="background:#d1fae5; color:#065f46; font-weight:800;">💳 PAID ONLINE (Stock Decremented)</span>';
+        payPill = '<span class="meta-pill" style="background:#d1fae5; color:#065f46; font-weight:800;">💳 ' + (o.paymentMethod || 'PAID ONLINE') + ' (Stock Decremented)</span>';
       } else if (isOutbid) {
         payPill = '<span class="meta-pill" style="background:#fef3c7; color:#92400e; font-weight:800;">⚡ OUTBID OFFER (+$1.00 Extra)</span>';
       }
@@ -394,14 +437,13 @@
     }).join('');
   }
 
-  // APPROVE CASH ORDER: Decrements stock and confirms order
+  // APPROVE CASH ORDER
   window.approveOrder = function(i) {
     const orders = getOrders();
     if (!orders[i]) return;
     const order = orders[i];
     order.status = 'approved';
 
-    // If stock has not been deducted yet for this cash order, deduct it now
     if (!order.stockDecremented) {
       const overrides = JSON.parse(localStorage.getItem('pp_menu_overrides') || '{}');
       const prods = getProducts();
@@ -422,15 +464,14 @@
     showToast('Order confirmed & stock deducted!');
   };
 
-  // REJECT ORDER: Deletes the order AND re-adds the quantity to stock!
+  // REJECT ORDER: Deletes the order AND restores stock!
   window.rejectOrder = function(i) {
     const orders = getOrders();
     if (!orders[i]) return;
     const order = orders[i];
 
-    if (!confirm('Reject and delete order from ' + (order.customerName || 'customer') + '? If stock was already deducted, it will be returned.')) return;
+    if (!confirm('Reject and delete order from ' + (order.customerName || 'customer') + '? If stock was already deducted, it will be returned to inventory.')) return;
 
-    // If stock was already decremented (e.g. Online order or previously approved Cash order), return it to stock!
     if (order.stockDecremented) {
       const overrides = JSON.parse(localStorage.getItem('pp_menu_overrides') || '{}');
       const prods = getProducts();
@@ -444,7 +485,6 @@
       }
     }
 
-    // Delete the order from list
     orders.splice(i, 1);
     saveOrders(orders);
 
@@ -513,6 +553,34 @@
     showToast('Product deleted');
   };
 
+  // Stripe Settings Management
+  function loadStripeSettings() {
+    const pk = localStorage.getItem('pp_stripe_pk') || 'pk_live_51Tzmw4LXU4os5QyXVR72hFVpCQPyKW5tRbqXnlhuKwmaFlRlhmdHw8aGZzBVtmfO9OmRp4UrndaL2IXQHEXbEBqF00ix5aeQSG';
+    const link = localStorage.getItem('pp_stripe_payment_link') || '';
+    const sk = localStorage.getItem('pp_stripe_sk') || '';
+    const vercel = localStorage.getItem('pp_vercel_url') || '';
+
+    if (document.getElementById('cfgStripePk')) document.getElementById('cfgStripePk').value = pk;
+    if (document.getElementById('cfgStripePaymentLink')) document.getElementById('cfgStripePaymentLink').value = link;
+    if (document.getElementById('cfgStripeSk')) document.getElementById('cfgStripeSk').value = sk;
+    if (document.getElementById('cfgVercelUrl')) document.getElementById('cfgVercelUrl').value = vercel;
+  }
+
+  document.getElementById('stripeSettingsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const pk = document.getElementById('cfgStripePk').value.trim();
+    const link = document.getElementById('cfgStripePaymentLink').value.trim();
+    const sk = document.getElementById('cfgStripeSk').value.trim();
+    const vercel = document.getElementById('cfgVercelUrl').value.trim();
+
+    localStorage.setItem('pp_stripe_pk', pk);
+    localStorage.setItem('pp_stripe_payment_link', link);
+    localStorage.setItem('pp_stripe_sk', sk);
+    localStorage.setItem('pp_vercel_url', vercel);
+
+    showToast('Stripe settings saved successfully!');
+  });
+
   // Image file preview
   const fileInput = document.getElementById('newImageFile');
   if (fileInput) {
@@ -562,8 +630,6 @@
     const orders = getOrders();
     const total = orders.length;
     const rev = orders.reduce((s,o)=>s+(o.total||0),0);
-    const pending = orders.filter(o=>o.status==='pending').length;
-    const approved = orders.filter(o=>o.status==='approved'||o.status==='confirmed').length;
     
     const prodCounts = {};
     orders.forEach(o => { if(o.productName) prodCounts[o.productName] = (prodCounts[o.productName]||0) + (o.quantity||1); });
