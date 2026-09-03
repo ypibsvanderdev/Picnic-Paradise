@@ -98,17 +98,47 @@
     .qty-btn:hover { background:var(--primary); color:white; border-color:var(--primary); }
     .qty-input input { width:60px; text-align:center; border-left:none; border-right:none; border-radius:0; font-family:"Fredoka One",cursive; font-size:1.2rem; }
     
-    /* Payment Method Toggle */
+    /* Main Payment Method Toggle */
     .pay-methods { display:flex; gap:0; margin-bottom:16px; border-radius:14px; overflow:hidden; border:2px solid #e8e8e8; }
     .pay-method { flex:1; padding:12px; text-align:center; font-weight:800; font-size:.95rem; cursor:pointer; transition:all .2s; background:white; border:none; font-family:"Nunito",sans-serif; color:var(--muted); }
     .pay-method.active { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:white; }
     .pay-method:hover:not(.active) { background:#f5f0ff; color:var(--primary); }
 
-    /* Online Card Form Section */
-    .online-card-box {
-      background: #f8faff; border: 2px solid #e0e7ff; border-radius: 16px;
+    /* Online Sub-Wallets Selection */
+    .online-wallet-box {
+      background: #f8faff; border: 2px solid #e0e7ff; border-radius: 18px;
       padding: 16px; margin-bottom: 16px; display: none;
     }
+    .wallet-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px; }
+    .wallet-tab {
+      padding: 10px 6px; border: 2px solid #e2e8f0; border-radius: 12px; background: white;
+      font-size: 0.82rem; font-weight: 800; text-align: center; cursor: pointer; transition: all .2s;
+    }
+    .wallet-tab.active { border-color: var(--primary); background: #ede9fe; color: var(--primary); }
+    .wallet-tab:hover:not(.active) { border-color: #cbd5e1; }
+
+    /* Native Apple Pay & Google Pay Button Styles */
+    .apple-pay-btn {
+      width: 100%; padding: 14px; background: #000; color: #fff; border: none; border-radius: 14px;
+      font-size: 1.15rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: transform .2s; box-shadow: 0 4px 14px rgba(0,0,0,0.25); margin-top: 6px;
+    }
+    .apple-pay-btn:hover { transform: scale(1.02); background: #111; }
+
+    .google-pay-btn {
+      width: 100%; padding: 13px; background: #fff; color: #3c4043; border: 2px solid #dadce0; border-radius: 14px;
+      font-size: 1.1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: transform .2s; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-top: 6px;
+    }
+    .google-pay-btn:hover { transform: scale(1.02); border-color: #4285f4; }
+
+    .cash-app-btn {
+      width: 100%; padding: 14px; background: #00D632; color: #fff; border: none; border-radius: 14px;
+      font-size: 1.15rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: transform .2s; box-shadow: 0 4px 14px rgba(0,214,50,0.3); margin-top: 6px;
+    }
+    .cash-app-btn:hover { transform: scale(1.02); }
+
     .card-row { display: flex; gap: 10px; }
 
     /* Last-Stock Cash Outbid Box */
@@ -145,7 +175,7 @@
     .loading-overlay.active { display:flex; }
     .spinner { width:50px; height:50px; border:5px solid #ddd6fe; border-top-color:var(--primary); border-radius:50%; animation:spin .8s linear infinite; }
     @keyframes spin { to{transform:rotate(360deg)} }
-    @media(max-width:500px){ .product-grid { grid-template-columns:1fr; } .card-row { flex-direction:column; } }
+    @media(max-width:500px){ .product-grid { grid-template-columns:1fr; } .wallet-tabs { grid-template-columns: 1fr 1fr; } }
   </style>
 </head>
 <body>
@@ -172,9 +202,9 @@
     <h2 class="section-title" style="margin-top:0;">📋 How It Works</h2>
     <div class="steps">
       <div class="step"><span class="step-icon">🛒</span><h3>Pick Your Item</h3><p>Browse our collection of fidgets, prints &amp; novelties</p></div>
-      <div class="step"><span class="step-icon">📝</span><h3>Place Your Order</h3><p>Pay online to instantly claim stock, or choose cash</p></div>
-      <div class="step"><span class="step-icon">⚡</span><h3>Last-Stock Bidding</h3><p>For cash on the last item in stock, bid +$1.00 to win priority</p></div>
-      <div class="step"><span class="step-icon">✅</span><h3>Meetup &amp; Enjoy</h3><p>Admin confirms cash orders; online claims stock instantly</p></div>
+      <div class="step"><span class="step-icon">💳</span><h3>Pay Online or Cash</h3><p>Apple Pay, Google Pay, Card, or Cash on meetup</p></div>
+      <div class="step"><span class="step-icon">⚡</span><h3>Last-Stock Bidding</h3><p>Cash on last item? Bid +$1.00 to outbid competition</p></div>
+      <div class="step"><span class="step-icon">✅</span><h3>Fast Meetup</h3><p>Get your items quickly with instant confirmations</p></div>
     </div>
   </div>
 </main>
@@ -221,24 +251,59 @@
           </div>
         </div>
 
-        <!-- Online Card Details Box (Shown when Pay Online is selected) -->
-        <div class="online-card-box" id="onlineCardBox">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <strong style="color:var(--primary); font-size:0.95rem;">💳 Instant Online Card Payment</strong>
+        <!-- Online Wallet & Card Selection (Shown when Pay Online is selected) -->
+        <div class="online-wallet-box" id="onlineWalletBox">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <strong style="color:var(--primary); font-size:0.95rem;">Select Online Payment</strong>
             <span style="font-size:0.75rem; background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:10px; font-weight:800;">Locks Stock Immediately</span>
           </div>
-          <div class="form-group" style="margin-bottom:10px;">
-            <label style="font-size:0.85rem;">Card Number</label>
-            <input type="text" id="onlineCardNumber" placeholder="4242 •••• •••• 4242" maxlength="19">
+
+          <div class="wallet-tabs">
+            <div class="wallet-tab active" id="wtab-apple" onclick="selectOnlineWallet('apple')">🍎 Apple Pay</div>
+            <div class="wallet-tab" id="wtab-google" onclick="selectOnlineWallet('google')">🌐 Google Pay</div>
+            <div class="wallet-tab" id="wtab-card" onclick="selectOnlineWallet('card')">💳 Card</div>
+            <div class="wallet-tab" id="wtab-cashapp" onclick="selectOnlineWallet('cashapp')">💚 Cash App</div>
           </div>
-          <div class="card-row">
-            <div class="form-group" style="flex:1; margin-bottom:0;">
-              <label style="font-size:0.85rem;">Expires</label>
-              <input type="text" id="onlineCardExp" placeholder="MM/YY" maxlength="5">
+
+          <!-- Apple Pay Panel -->
+          <div id="panel-apple" style="display:block; text-align:center;">
+            <button type="button" class="apple-pay-btn" onclick="triggerWalletPay('Apple Pay')">
+              <span>Pay</span> &nbsp; Pay with Face ID / Touch ID
+            </button>
+            <p style="font-size:0.78rem; color:var(--muted); margin-top:8px;">Instant 1-tap checkout on iPhone, iPad, and Mac.</p>
+          </div>
+
+          <!-- Google Pay Panel -->
+          <div id="panel-google" style="display:none; text-align:center;">
+            <button type="button" class="google-pay-btn" onclick="triggerWalletPay('Google Pay')">
+              <span style="font-weight:900; color:#4285F4;">G</span><span style="font-weight:900; color:#EA4335;">P</span><span style="font-weight:900; color:#FBBC05;">a</span><span style="font-weight:900; color:#34A853;">y</span> &nbsp; Pay with Google Pay
+            </button>
+            <p style="font-size:0.78rem; color:var(--muted); margin-top:8px;">Fast, secure checkout saved to your Google Account.</p>
+          </div>
+
+          <!-- Cash App Panel -->
+          <div id="panel-cashapp" style="display:none; text-align:center;">
+            <button type="button" class="cash-app-btn" onclick="triggerWalletPay('Cash App Pay')">
+              <span>$</span> &nbsp; Pay with Cash App Pay
+            </button>
+            <p style="font-size:0.78rem; color:var(--muted); margin-top:8px;">Scan or authorize with your Cash App balance.</p>
+          </div>
+
+          <!-- Credit/Debit Card Panel -->
+          <div id="panel-card" style="display:none;">
+            <div class="form-group" style="margin-bottom:10px;">
+              <label style="font-size:0.85rem;">Card Number</label>
+              <input type="text" id="onlineCardNumber" placeholder="4242 •••• •••• 4242" maxlength="19">
             </div>
-            <div class="form-group" style="flex:1; margin-bottom:0;">
-              <label style="font-size:0.85rem;">CVC</label>
-              <input type="text" id="onlineCardCvc" placeholder="123" maxlength="4">
+            <div class="card-row">
+              <div class="form-group" style="flex:1; margin-bottom:0;">
+                <label style="font-size:0.85rem;">Expires</label>
+                <input type="text" id="onlineCardExp" placeholder="MM/YY" maxlength="5">
+              </div>
+              <div class="form-group" style="flex:1; margin-bottom:0;">
+                <label style="font-size:0.85rem;">CVC</label>
+                <input type="text" id="onlineCardCvc" placeholder="123" maxlength="4">
+              </div>
             </div>
           </div>
         </div>
@@ -297,6 +362,7 @@
   let selectedProduct = null;
   let quantity = 1;
   let paymentMethod = 'cash';
+  let onlineWallet = 'apple';
   let isOutbidSelected = false;
 
   function getProducts() {
@@ -435,7 +501,6 @@
       return;
     }
 
-    // Only for cash orders when stock is 1 (or was last in stock) and an existing cash order exists
     const stock = (selectedProduct.stock !== undefined) ? parseInt(selectedProduct.stock, 10) : 1;
     const orders = getOrders();
     const existingPendingCashOrders = orders.filter(o => 
@@ -444,7 +509,6 @@
       o.paymentMethod && o.paymentMethod.includes('Cash')
     );
 
-    // If stock is 1 and someone already placed a pending cash order, show the outbid option!
     if (stock <= 1 && existingPendingCashOrders.length > 0) {
       outbidBox.style.display = 'block';
     } else {
@@ -463,7 +527,7 @@
     if (!selectedProduct) return;
     let baseTotal = selectedProduct.price * quantity;
     if (paymentMethod === 'cash' && isOutbidSelected) {
-      baseTotal += 1.00; // Extra dollar to outbid other person
+      baseTotal += 1.00;
     }
     document.getElementById('orderTotal').textContent = '$' + baseTotal.toFixed(2);
 
@@ -474,8 +538,15 @@
       } else {
         submitBtn.textContent = '💵 Place Order with Cash - $' + baseTotal.toFixed(2);
       }
+      submitBtn.style.display = 'block';
     } else {
-      submitBtn.textContent = '💳 Pay $' + baseTotal.toFixed(2) + ' Online (Locks Stock)';
+      // In online mode, card panel has submit button; wallets have their 1-tap buttons
+      if (onlineWallet === 'card') {
+        submitBtn.textContent = '💳 Pay $' + baseTotal.toFixed(2) + ' with Card';
+        submitBtn.style.display = 'block';
+      } else {
+        submitBtn.style.display = 'none'; // Users tap the Apple Pay / Google Pay / Cash App button directly
+      }
     }
   }
 
@@ -483,26 +554,38 @@
     paymentMethod = method;
     const cashBtn = document.getElementById('btnPayCash');
     const onlineBtn = document.getElementById('btnPayOnline');
-    const cardBox = document.getElementById('onlineCardBox');
+    const walletBox = document.getElementById('onlineWalletBox');
     const outbidBox = document.getElementById('outbidBox');
 
     if (method === 'cash') {
       cashBtn.classList.add('active');
       onlineBtn.classList.remove('active');
-      cardBox.style.display = 'none';
+      walletBox.style.display = 'none';
       checkOutbidEligibility();
     } else {
       onlineBtn.classList.add('active');
       cashBtn.classList.remove('active');
-      cardBox.style.display = 'block';
+      walletBox.style.display = 'block';
       outbidBox.style.display = 'none';
-      isOutbidSelected = false; // Online does NOT have the extra dollar bidding feature!
+      isOutbidSelected = false;
       document.getElementById('outbidCheck').checked = false;
+      selectOnlineWallet(onlineWallet);
     }
     updateTotal();
   };
 
-  // Card input auto-formatters
+  window.selectOnlineWallet = function(wallet) {
+    onlineWallet = wallet;
+    ['apple', 'google', 'card', 'cashapp'].forEach(w => {
+      const tab = document.getElementById('wtab-' + w);
+      const panel = document.getElementById('panel-' + w);
+      if (tab) tab.classList.toggle('active', w === wallet);
+      if (panel) panel.style.display = (w === wallet) ? 'block' : 'none';
+    });
+    updateTotal();
+  };
+
+  // Card formatting
   const cardInput = document.getElementById('onlineCardNumber');
   if (cardInput) {
     cardInput.addEventListener('input', function(e) {
@@ -519,7 +602,76 @@
     });
   }
 
-  document.getElementById('orderForm').addEventListener('submit', async function(e) {
+  // 1-Tap Trigger for Apple Pay, Google Pay, and Cash App
+  window.triggerWalletPay = function(walletName) {
+    const name = document.getElementById('customerName').value.trim();
+    const phone = document.getElementById('customerPhone').value.trim();
+    const message = document.getElementById('customerMessage').value.trim();
+
+    if (!name) {
+      showToast('Please enter your name first');
+      document.getElementById('customerName').focus();
+      return;
+    }
+    if (!phone || phone.length < 7) {
+      showToast('Please enter a valid phone number');
+      document.getElementById('customerPhone').focus();
+      return;
+    }
+
+    executeOnlinePayment(walletName, name, phone, message);
+  };
+
+  function executeOnlinePayment(methodLabel, name, phone, message) {
+    showToast('Authorizing with ' + methodLabel + '...');
+    const orderId = 'SP-' + Date.now().toString().slice(-6);
+    const total = selectedProduct.price * quantity;
+
+    setTimeout(function() {
+      const order = {
+        orderId: orderId,
+        customerName: name,
+        customerPhone: phone,
+        productId: selectedProduct.id,
+        productName: selectedProduct.name,
+        productPrice: selectedProduct.price,
+        quantity: quantity,
+        total: total,
+        message: message,
+        paymentMethod: methodLabel,
+        status: 'confirmed',
+        stockDecremented: true,
+        timestamp: new Date().toISOString()
+      };
+
+      // Save order
+      const orders = getOrders();
+      orders.push(order);
+      localStorage.setItem('pp_orders', JSON.stringify(orders));
+
+      // DEDUCT STOCK IMMEDIATELY FOR ONLINE PAYMENT
+      const overrides = JSON.parse(localStorage.getItem('pp_menu_overrides') || '{}');
+      const curStock = (overrides[selectedProduct.id] && overrides[selectedProduct.id].stock !== undefined)
+        ? overrides[selectedProduct.id].stock : selectedProduct.stock;
+      const newStock = Math.max(0, curStock - quantity);
+      if (!overrides[selectedProduct.id]) overrides[selectedProduct.id] = {};
+      overrides[selectedProduct.id].stock = newStock;
+      localStorage.setItem('pp_menu_overrides', JSON.stringify(overrides));
+
+      window.dispatchEvent(new Event('inventoryUpdated'));
+
+      // Show success screen
+      document.getElementById('modalBody').style.display = 'none';
+      document.getElementById('orderIdBadge').textContent = 'Order #' + orderId;
+      document.getElementById('successTitle').textContent = 'Paid with ' + methodLabel + '!';
+      document.getElementById('successMessage').textContent = 'Payment of $' + total.toFixed(2) + ' was approved via ' + methodLabel + '. Stock has been locked in for you!';
+      document.getElementById('successScreen').classList.add('active');
+      renderProducts();
+    }, 900);
+  }
+
+  // Handle Form Submission (Used for Cash and Card)
+  document.getElementById('orderForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const name = document.getElementById('customerName').value.trim();
     const phone = document.getElementById('customerPhone').value.trim();
@@ -536,81 +688,30 @@
       return;
     }
 
-    const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-
-    const orderId = 'SP-' + Date.now().toString().slice(-6);
-    let total = selectedProduct.price * quantity;
-
-    // --- CASE 1: ONLINE PAYMENT ---
-    if (paymentMethod === 'online') {
+    if (paymentMethod === 'online' && onlineWallet === 'card') {
       const cardNum = document.getElementById('onlineCardNumber').value.replace(/\s/g, '');
       const cardExp = document.getElementById('onlineCardExp').value.trim();
-      const cardCvc = document.getElementById('onlineCardCvc').value.trim();
-
       if (!cardNum || cardNum.length < 12) {
         showToast('Please enter a valid card number');
         document.getElementById('onlineCardNumber').focus();
-        btn.disabled = false;
         return;
       }
       if (!cardExp || cardExp.length < 4) {
         showToast('Please enter MM/YY card expiry');
         document.getElementById('onlineCardExp').focus();
-        btn.disabled = false;
         return;
       }
-
-      btn.textContent = 'Processing Online Payment...';
-
-      // Online payment takes out stock IMMEDIATELY upon confirmed payment
-      setTimeout(function() {
-        const order = {
-          orderId: orderId,
-          customerName: name,
-          customerPhone: phone,
-          productId: selectedProduct.id,
-          productName: selectedProduct.name,
-          productPrice: selectedProduct.price,
-          quantity: quantity,
-          total: total,
-          message: message,
-          paymentMethod: 'Paid Online (Card •••• ' + cardNum.slice(-4) + ')',
-          status: 'confirmed',
-          stockDecremented: true,
-          timestamp: new Date().toISOString()
-        };
-
-        // Save order
-        const orders = getOrders();
-        orders.push(order);
-        localStorage.setItem('pp_orders', JSON.stringify(orders));
-
-        // DEDUCT STOCK IMMEDIATELY FOR ONLINE PAYMENT
-        const overrides = JSON.parse(localStorage.getItem('pp_menu_overrides') || '{}');
-        const curStock = (overrides[selectedProduct.id] && overrides[selectedProduct.id].stock !== undefined)
-          ? overrides[selectedProduct.id].stock : selectedProduct.stock;
-        const newStock = Math.max(0, curStock - quantity);
-        if (!overrides[selectedProduct.id]) overrides[selectedProduct.id] = {};
-        overrides[selectedProduct.id].stock = newStock;
-        localStorage.setItem('pp_menu_overrides', JSON.stringify(overrides));
-
-        window.dispatchEvent(new Event('inventoryUpdated'));
-
-        // Show success screen
-        document.getElementById('modalBody').style.display = 'none';
-        document.getElementById('orderIdBadge').textContent = 'Order #' + orderId;
-        document.getElementById('successTitle').textContent = 'Payment Confirmed!';
-        document.getElementById('successMessage').textContent = 'Your payment of $' + total.toFixed(2) + ' was successfully charged. Your item is secured and stock is locked in!';
-        document.getElementById('successScreen').classList.add('active');
-        btn.disabled = false;
-        renderProducts();
-      }, 1000);
+      executeOnlinePayment('Credit Card (•••• ' + cardNum.slice(-4) + ')', name, phone, message);
       return;
     }
 
-    // --- CASE 2: CASH PAYMENT ---
+    // Cash Order Submission
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
     btn.textContent = 'Placing Cash Order...';
+
+    const orderId = 'SP-' + Date.now().toString().slice(-6);
+    let total = selectedProduct.price * quantity;
     if (isOutbidSelected) {
       total += 1.00;
     }
@@ -628,8 +729,8 @@
         extraDollar: isOutbidSelected,
         message: message,
         paymentMethod: isOutbidSelected ? 'Cash on meetup (+$1.00 Outbid Priority)' : 'Cash on meetup',
-        status: 'pending', // Requires admin confirmation in admin panel!
-        stockDecremented: false, // NOT decremented until admin confirms!
+        status: 'pending',
+        stockDecremented: false,
         timestamp: new Date().toISOString()
       };
 
