@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!name || name.length < 2) {
       name = 'Picnic Guest';
     }
-    if (!email) email = 'customer@picnicparadise.com';
+    if (!email) email = 'customer@thesugarprinter.com';
     if (!phone) phone = '(224) 855-1121';
     
     if (currentMethod === 'card') {
@@ -168,18 +168,17 @@ document.addEventListener('DOMContentLoaded', () => {
         specialInstructions: instructions
       };
 
-      if (typeof window.processStripeCheckout === 'function') {
-        window.processStripeCheckout(order);
-      } else {
-        if (typeof window.saveOrderToFirebase === 'function') {
-          window.saveOrderToFirebase(order);
-        } else {
-          const orders = JSON.parse(localStorage.getItem('pp_orders')) || [];
-          orders.push(order);
-          localStorage.setItem('pp_orders', JSON.stringify(orders));
-        }
-        localStorage.setItem('pp_cart', '[]');
-        window.location.href = `order-confirmation.html?id=${order.orderId}`;
+      if (typeof PPUtils !== 'undefined' && PPUtils.decrementStockForOrder) {
+    PPUtils.decrementStockForOrder(cart);
+  }
+  if (typeof window.saveOrderToFirebase === 'function') {
+    window.saveOrderToFirebase(order);
+  }
+  const orders = JSON.parse(localStorage.getItem('pp_orders')) || [];
+  orders.push(order);
+  localStorage.setItem('pp_orders', JSON.stringify(orders));
+  localStorage.setItem('pp_cart', '[]');
+  window.location.href = `order-confirmation.html?id=${order.orderId}`;
       }
     }, 1500);
   }

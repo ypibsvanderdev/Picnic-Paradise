@@ -155,7 +155,7 @@ function renderNavUserProfile() {
       
       <div id="navUserMenu" style="display:none; position:absolute; right:0; top:calc(100% + 8px); background:var(--pp-surface); border-radius:12px; box-shadow:var(--pp-shadow-lg); min-width:200px; padding:8px 0; z-index:99999; border:1px solid var(--pp-border); text-align:left;">
         <div style="padding:10px 16px; border-bottom:1px solid var(--pp-border); font-size:0.8rem; color:var(--pp-text-secondary);">
-          Welcome to Picnic Paradise!
+          Welcome to The Sugar Printer!
         </div>
         
         <a href="account.html" style="display:flex; align-items:center; gap:8px; padding:10px 16px; color:var(--pp-primary-dark); text-decoration:none; font-weight:700; font-size:0.9rem; transition:background 0.2s;" onmouseover="this.style.background='var(--pp-bg-alt)'" onmouseout="this.style.background='transparent'">
@@ -565,24 +565,72 @@ function initHomepage() {
 }
 
 // Product card generator
+// Product card generator for The Sugar Printer
 function createProductCard(item) {
   const card = document.createElement('div');
   card.className = 'card card-product';
   card.style.cursor = 'pointer';
-  
+  card.style.display = 'flex';
+  card.style.flexDirection = 'column';
+  card.style.position = 'relative';
+  card.style.overflow = 'hidden';
+
+  const stock = (item.stock !== undefined) ? parseInt(item.stock, 10) : 1;
+  const isSoldOut = (stock <= 0) || item.soldOut;
+  const price = item.prices ? (item.prices.single || item.prices.medium || item.prices.small || item.price || 0) : (item.price || 0);
+
+  let stockTag = '';
+  if (isSoldOut) {
+    stockTag = '<div class="stock-pill out">❌ Out of Stock</div>';
+  } else if (stock === 1) {
+    stockTag = '<div class="stock-pill low">⚡ Only 1 Left!</div>';
+  } else if (stock <= 3) {
+    stockTag = `<div class="stock-pill low">🔥 Only ${stock} Left</div>`;
+  } else {
+    stockTag = `<div class="stock-pill in">✅ In Stock</div>`;
+  }
+
+  let imageHtml = '';
+  if (item.image) {
+    imageHtml = `
+      <div class="product-card-image" style="height: 200px; width: 100%; overflow: hidden; background: #1e1e2e; position: relative;">
+        <img src="${item.image}" alt="${item.name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-size:4rem; background:${item.gradient || '#8b5cf6'}">${item.emoji || '✨'}</div>
+        ${stockTag}
+      </div>
+    `;
+  } else {
+    imageHtml = `
+      <div class="product-card-image" style="height: 200px; width: 100%; display: flex; align-items: center; justify-content: center; font-size: 4.5rem; background: ${item.gradient || 'linear-gradient(135deg, #8b5cf6, #3b82f6)'}; position: relative;">
+        <span>${item.emoji || '✨'}</span>
+        ${stockTag}
+      </div>
+    `;
+  }
+
   card.innerHTML = `
-    <div class="card-emoji-bg" style="background: linear-gradient(135deg, ${item.gradient})">
-      ${item.emoji}
+    ${imageHtml}
+    <div class="product-card-body" style="padding: 1.25rem; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="font-size:0.8rem; text-transform:uppercase; color:var(--pp-primary); font-weight:700; margin-bottom:4px;">${item.categoryLabel || item.category || 'Fidgets'}</div>
+        <h3 class="card-title" style="font-size:1.15rem; margin-bottom:6px; font-weight:700;">${item.name}</h3>
+        <p style="font-size:0.85rem; color:var(--pp-text-secondary); margin-bottom:10px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${item.description || ''}</p>
+      </div>
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div class="card-price" style="font-size:1.25rem; font-weight:800; color:var(--pp-primary);">${price.toFixed(2)}</div>
+          <div class="card-rating" style="font-size:0.85rem; font-weight:600; color:#f59e0b;">⭐ ${item.rating || '5.0'}</div>
+        </div>
+        <button class="btn ${isSoldOut ? 'btn-outline' : 'btn-primary'} btn-full" style="padding:10px; font-weight:700; font-size:0.9rem;">
+          ${isSoldOut ? 'Sold Out' : 'View & Order'}
+        </button>
+      </div>
     </div>
-    <h3 class="card-title">${item.name}</h3>
-    <div class="card-price">$${item.price || (item.prices ? (item.prices.medium || item.prices.single || item.prices.small) : '?')}</div>
-    <div class="card-rating">⭐ ${item.rating || '4.9'}</div>
-    <button class="btn btn-primary card-btn">View & Order</button>
   `;
-  
+
   card.addEventListener('click', () => {
-    window.location.href = 'menu.html';
+    window.location.href = `menu.html?item=${encodeURIComponent(item.id)}`;
   });
-  
+
   return card;
 }

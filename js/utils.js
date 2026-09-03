@@ -1,9 +1,7 @@
-/**
- * Picnic Paradise Utility Functions
- */
+// js/utils.js - The Sugar Printer Utilities
 
 window.PPUtils = {
-  // Storage Helpers
+  // LocalStorage Helpers
   getStorage: (key) => {
     try {
       const item = localStorage.getItem(key);
@@ -108,6 +106,11 @@ window.PPUtils = {
     const orders = window.PPUtils.getOrders();
     orders.push(order);
     window.PPUtils.setStorage('pp_orders', orders);
+    
+    // Decrement stock for purchased items
+    if (order.items && order.items.length > 0) {
+      window.PPUtils.decrementStockForOrder(order.items);
+    }
   },
   
   getOrderById: (id) => {
@@ -120,7 +123,7 @@ window.PPUtils = {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
-    }).format(amount);
+    }).format(amount || 0);
   },
   
   formatDate: (isoString) => {
@@ -149,7 +152,6 @@ window.PPUtils = {
   },
   
   isValidCardNumber: (num) => {
-    // Luhn algorithm
     const arr = (num + '')
       .split('')
       .reverse()
@@ -179,7 +181,7 @@ window.PPUtils = {
     return el;
   },
 
-  // Toast
+  // Toast Notifications
   showToast: (message, type = 'info') => {
     const toastContainer = window.PPUtils.$('#toast-container') || (() => {
       const tc = window.PPUtils.createElement('div', '', { id: 'toast-container' });
@@ -188,10 +190,11 @@ window.PPUtils = {
         bottom: '20px',
         left: '50%',
         transform: 'translateX(-50%)',
-        zIndex: '9999',
+        zIndex: '99999',
         display: 'flex',
         flexDirection: 'column',
-        gap: '10px'
+        gap: '10px',
+        pointerEvents: 'none'
       });
       document.body.appendChild(tc);
       return tc;
@@ -199,29 +202,29 @@ window.PPUtils = {
 
     const toast = window.PPUtils.createElement('div', `toast toast-${type}`);
     
-    // Style toast inline since it might not be in CSS
     Object.assign(toast.style, {
       padding: '12px 24px',
-      borderRadius: '8px',
-      background: type === 'success' ? '#95E872' : type === 'error' ? '#FF6B6B' : '#4ECDC4',
-      color: type === 'success' ? '#111' : '#FFF',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      borderRadius: '24px',
+      background: type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#8b5cf6',
+      color: '#FFF',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
       fontWeight: '600',
+      fontFamily: "'Outfit', sans-serif",
+      fontSize: '0.95rem',
       opacity: '0',
       transform: 'translateY(20px)',
-      transition: 'all 0.3s ease'
+      transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+      pointerEvents: 'auto'
     });
     
     toast.textContent = message;
     toastContainer.appendChild(toast);
     
-    // Animate in
     requestAnimationFrame(() => {
       toast.style.opacity = '1';
       toast.style.transform = 'translateY(0)';
     });
     
-    // Remove after 3s
     setTimeout(() => {
       toast.style.opacity = '0';
       toast.style.transform = 'translateY(20px)';
@@ -258,24 +261,119 @@ window.PPUtils = {
     };
   },
 
-  // Menu Helpers
+  // Product & Inventory Helpers for The Sugar Printer
   getMenuItems: () => {
-    // Return window.MENU_ITEMS with overrides applied
-    let items = JSON.parse(JSON.stringify(window.MENU_ITEMS));
-    const overrides = window.PPUtils.getStorage('pp_menu_overrides') || {};
-    
-    return items.map(item => {
+    let baseItems = JSON.parse(JSON.stringify(window.MENU_ITEMS || []));
+    let customItems = window.PPUtils.getStorage('pp_custom_items') || [];
+    let deletedItems = window.PPUtils.getStorage('pp_deleted_items') || [];
+    let overrides = window.PPUtils.getStorage('pp_menu_overrides') || {};
+
+    // Combine base and custom items
+    let allItems = [...baseItems, ...customItems];
+
+    // Filter out deleted items
+    allItems = allItems.filter(item => !deletedItems.includes(item.id));
+
+    // Apply overrides and ensure stock / soldOut values
+    return allItems.map(item => {
+      let finalItem = { ...item };
       if (overrides[item.id]) {
-        return { ...item, ...overrides[item.id] };
+        finalItem = { ...finalItem, ...overrides[item.id] };
       }
-      return item;
+      
+      // Stock calculation
+      if (finalItem.stock === undefined || finalItem.stock === null) {
+        finalItem.stock = 1;
+      }
+      finalItem.stock = parseInt(finalItem.stock, 10);
+      if (isNaN(finalItem.stock)) finalItem.stock = 0;
+
+      if (finalItem.stock <= 0) {
+        finalItem.soldOut = true;
+      }
+
+      return finalItem;
     });
+  },
+
+  updateProductStock: (itemId, newStock) => {
+    let overrides = window.PPUtils.getStorage('pp_menu_overrides') || {};
+    if (!overrides[itemId]) overrides[itemId] = {};
+    const stockNum = Math.max(0, parseInt(newStock, 10) || 0);
+    overrides[itemId].stock = stockNum;
+    overrides[itemId].soldOut = (stockNum <= 0);
+    window.PPUtils.setStorage('pp_menu_overrides', overrides);
+    window.dispatchEvent(new CustomEvent('inventoryUpdated', { detail: { itemId, stock: stockNum } }));
+    return stockNum;
+  },
+
+  decrementStockForOrder: (items) => {
+    let overrides = window.PPUtils.getStorage('pp_menu_overrides') || {};
+    let allCurrentItems = window.PPUtils.getMenuItems();
+
+    (items || []).forEach(cartItem => {
+      const current = allCurrentItems.find(i => i.id === cartItem.itemId);
+      if (current) {
+        const prevStock = (current.stock !== undefined) ? current.stock : 1;
+        const newStock = Math.max(0, prevStock - (cartItem.quantity || 1));
+        if (!overrides[cartItem.itemId]) overrides[cartItem.itemId] = {};
+        overrides[cartItem.itemId].stock = newStock;
+        overrides[cartItem.itemId].soldOut = (newStock <= 0);
+      }
+    });
+
+    window.PPUtils.setStorage('pp_menu_overrides', overrides);
+    window.dispatchEvent(new CustomEvent('inventoryUpdated'));
+  },
+
+  saveProduct: (product) => {
+    let customItems = window.PPUtils.getStorage('pp_custom_items') || [];
+    const baseItems = window.MENU_ITEMS || [];
+    const isBaseItem = baseItems.some(i => i.id === product.id);
+
+    if (isBaseItem) {
+      let overrides = window.PPUtils.getStorage('pp_menu_overrides') || {};
+      overrides[product.id] = { ...product };
+      window.PPUtils.setStorage('pp_menu_overrides', overrides);
+    } else {
+      const existingIndex = customItems.findIndex(i => i.id === product.id);
+      if (existingIndex > -1) {
+        customItems[existingIndex] = product;
+      } else {
+        customItems.push(product);
+      }
+      window.PPUtils.setStorage('pp_custom_items', customItems);
+    }
+
+    // Also remove from deleted if re-added
+    let deletedItems = window.PPUtils.getStorage('pp_deleted_items') || [];
+    if (deletedItems.includes(product.id)) {
+      deletedItems = deletedItems.filter(id => id !== product.id);
+      window.PPUtils.setStorage('pp_deleted_items', deletedItems);
+    }
+
+    window.dispatchEvent(new CustomEvent('inventoryUpdated'));
+  },
+
+  deleteProduct: (itemId) => {
+    // Check if custom item
+    let customItems = window.PPUtils.getStorage('pp_custom_items') || [];
+    customItems = customItems.filter(i => i.id !== itemId);
+    window.PPUtils.setStorage('pp_custom_items', customItems);
+
+    // Also mark in deleted items for base items
+    let deletedItems = window.PPUtils.getStorage('pp_deleted_items') || [];
+    if (!deletedItems.includes(itemId)) {
+      deletedItems.push(itemId);
+      window.PPUtils.setStorage('pp_deleted_items', deletedItems);
+    }
+    window.dispatchEvent(new CustomEvent('inventoryUpdated'));
   },
 
   // QR Code Renderer Helper using highly reliable image API with fallback
   renderQRCodeHTML: (orderId, containerEl) => {
     if (!containerEl) return;
-    const text = `PP-ORDER:${orderId}`;
+    const text = `SUGAR-ORDER:${orderId}`;
     
     containerEl.innerHTML = `
       <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px; background:#fff; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
@@ -283,12 +381,13 @@ window.PPUtils = {
              alt="QR Code #${orderId}" 
              style="width:160px; height:160px; border-radius:10px; display:block;"
              onerror="this.onerror=null; this.src='https://chart.googleapis.com/chart?cht=qr&chs=160x160&chl=${encodeURIComponent(text)}';">
-        <div style="margin-top:8px; font-weight:700; font-size:0.9rem; color:var(--pp-primary-dark,#2563eb); font-family:monospace;">#${(orderId||'').replace('PP-','')}</div>
+        <div style="margin-top:8px; font-weight:700; font-size:0.9rem; color:#8b5cf6; font-family:monospace;">#${(orderId||'').replace('PP-','')}</div>
       </div>
     `;
   }
 };
 
-// Aliases for easier use if needed
+// Aliases
+window.getMenuItems = window.PPUtils.getMenuItems;
 window.$ = window.PPUtils.$;
 window.$$ = window.PPUtils.$$;

@@ -20,11 +20,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Discount Codes
   const DISCOUNT_CODES = {
-    'PICNIC10': 0.10,
-    'SUMMER20': 0.20,
+    'SUGAR10': 0.10,
+    'PRINT20': 0.20,
     'FIRSTORDER': 0.15,
     'TEST99': 0.9999,
-    'ADMIN99': 0.9999
+    'ADMIN99': 0.9999,
+    ...((typeof PPUtils !== 'undefined' && PPUtils.getStorage) ? (PPUtils.getStorage('pp_custom_promos') || {}) : {})
   };
   
   const PICKUP_TIMES = [
@@ -110,9 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const lineTotal = item.unitPrice * item.quantity;
 
         itemEl.innerHTML = `
-          <div class="cart-item-image" style="background: linear-gradient(135deg, ${gradient}); width: 80px; height: 80px; display:flex; align-items:center; justify-content:center; font-size:2.5rem; border-radius:12px; flex-shrink:0;">
-            <span>${emoji}</span>
-          </div>
+          ${item.image ? `<div class="cart-item-image" style="width: 80px; height: 80px; border-radius:12px; overflow:hidden; flex-shrink:0; background:#1e1e2e;"><img src="${item.image}" alt="${item.name}" style="width:100%; height:100%; object-fit:cover;"></div>` : `<div class="cart-item-image" style="background: linear-gradient(135deg, ${gradient}); width: 80px; height: 80px; display:flex; align-items:center; justify-content:center; font-size:2.5rem; border-radius:12px; flex-shrink:0;"><span>${emoji}</span></div>`}
           <div class="cart-item-info" style="flex:1;">
             <div class="cart-item-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
               <h4 style="margin:0; font-family:'Outfit',sans-serif; font-size:1.1rem; font-weight:700;">${item.name}</h4>

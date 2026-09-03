@@ -1,35 +1,33 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Admin Dashboard for Picnic Paradise">
-  <title>Admin Dashboard | Picnic Paradise</title>
-  <!-- Fonts -->
+  <title>Admin Dashboard | The Sugar Printer</title>
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
-  <!-- CSS -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/animations.css">
   <link rel="stylesheet" href="css/admin.css">
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script src="js/firebase-config.js"></script>
 </head>
 <body class="admin-body">
 
+  <!-- Audio Chime for New Orders -->
+  <audio id="orderChimeAudio" preload="auto">
+    <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
+  </audio>
+
   <!-- Login Gate -->
-  <div id="adminLogin" style="padding: 20px;">
-    <div class="card admin-login text-center">
-      <div style="font-size: 3.5rem; margin-bottom: 1rem;">🧺</div>
-      <h2 style="margin-bottom: 0.5rem; font-family:'Outfit',sans-serif; font-size:1.8rem; color:#fff;">Admin Login</h2>
-      <p style="color:var(--dash-muted); margin-bottom: 1.5rem; font-size:0.9rem;">Sign in to access Picnic Paradise orders & dashboard</p>
+  <div id="adminLoginGate" class="admin-login-overlay">
+    <div class="admin-login-card">
+      <div class="admin-login-icon">🖨️</div>
+      <h2>The Sugar Printer</h2>
+      <p style="color:var(--dash-muted); margin-bottom: 1.5rem; font-size:0.9rem;">Store Manager & Inventory Dashboard</p>
       
-      <button type="button" id="googleAdminBtn" class="btn btn-outline btn-full" style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom: 1.25rem; background:white; color:#333; border: 1px solid #ccc; font-weight:600; cursor:pointer;">
-        <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.1.83-.64 2.08-1.84 2.92l2.84 2.2c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.84-2.2c-.76.53-1.78.9-3.12.9-2.38 0-4.41-1.57-5.13-3.72L.97 13.04C2.45 15.98 5.48 18 9 18z"/><path fill="#FBBC05" d="M3.87 10.8c-.19-.53-.3-1.1-.3-1.8s.11-1.27.3-1.8L.97 4.96C.35 6.18 0 7.55 0 9s.35 2.82.97 4.04l2.9-2.24z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.45 2.02.97 4.96l2.9 2.24C4.59 5.05 6.62 3.58 9 3.58z"/></svg>
+      <button type="button" id="googleSignInBtn" class="btn btn-outline btn-full" style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom: 1rem; border-color:var(--dash-border); background:rgba(255,255,255,0.05); color:#fff;">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
         Sign in with Google (Gmail)
       </button>
 
@@ -46,7 +44,7 @@
         </div>
         <div class="form-group" style="margin-bottom: 1.5rem; text-align: left;">
           <label style="color:var(--dash-text); font-size:0.85rem;">Password</label>
-          <input type="password" id="adminPass" class="input" placeholder="Enter password" style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border);" required>
+          <input type="password" id="adminPass" class="input" placeholder="Enter password (default: picnic2026 or admin)" style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border);" required>
         </div>
         <p id="adminLoginError" style="color: var(--dash-red); margin-bottom: 1rem; display: none; font-weight:600; font-size:0.85rem;"></p>
         <button type="submit" class="btn btn-primary btn-full">Login with Password</button>
@@ -59,16 +57,16 @@
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
       <div class="sb-logo">
-        🧺 Picnic Paradise <small style="background:var(--dash-green); color:#000; padding:2px 6px; border-radius:4px; font-weight:800;">UPDATED v2</small>
+        🖨️ The Sugar Printer <small style="background:var(--dash-green); color:#000; padding:2px 6px; border-radius:4px; font-weight:800; font-size:0.7rem;">STORE MANAGER</small>
       </div>
       <nav class="sb-nav">
         <button type="button" class="sb-link active" data-target="section-dashboard">📊 Dashboard & Orders</button>
-        <button type="button" class="sb-link" data-target="section-menu">🍔 Menu Items</button>
+        <button type="button" class="sb-link" data-target="section-menu">📦 Products & Inventory</button>
         <button type="button" class="sb-link" data-target="section-customers">👥 Customers</button>
         <button type="button" class="sb-link" data-target="section-settings">⚙️ Settings</button>
       </nav>
       <div class="sb-bottom">
-        <a href="index.html" class="sb-link" style="text-decoration:none;">← Back to Site</a>
+        <a href="index.html" class="sb-link" style="text-decoration:none;">⬅️ Back to Store</a>
         <button type="button" id="adminLogoutBtn" class="sb-logout">🚪 Sign Out</button>
       </div>
     </aside>
@@ -78,12 +76,12 @@
       <!-- HEADER -->
       <header class="dash-header">
         <div>
-          <h1>Dashboard</h1>
+          <h1 id="pageTitle">Dashboard</h1>
           <p id="dashGreeting">Welcome back, Admin!</p>
         </div>
         <div class="dash-header-right" style="display:flex; align-items:center; gap:12px;">
           <button type="button" id="btnToggleSound" style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border); padding:6px 12px; border-radius:8px; font-weight:600; font-size:0.85rem; cursor:pointer;">🔔 Sound: ON</button>
-          <span id="dashDate" style="color:var(--dash-muted); font-size:0.9rem;">Aug 1, 2026</span>
+          <span id="dashDate" style="color:var(--dash-muted); font-size:0.9rem;">Aug 28, 2026</span>
         </div>
       </header>
 
@@ -111,7 +109,7 @@
 
         <!-- TOP SELLING ANALYTICS CARD -->
         <div class="admin-card" style="margin-bottom:24px;">
-          <h3 style="font-family:'Outfit',sans-serif; font-size:1.2rem; margin-bottom:16px; display:flex; align-items:center; gap:8px;">🔥 Top Selling Items</h3>
+          <h3 style="font-family:'Outfit',sans-serif; font-size:1.2rem; margin-bottom:16px; display:flex; align-items:center; gap:8px;">🔥 Top Selling Products</h3>
           <div id="topSellingContainer" style="display:flex; flex-direction:column; gap:12px;">
             <p style="color:var(--dash-muted); font-size:0.9rem;">No sales data yet.</p>
           </div>
@@ -120,7 +118,7 @@
         <!-- ORDERS CARD -->
         <div class="admin-card">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
-            <h3 style="font-family:'Outfit',sans-serif; font-size:1.3rem;">🧾 Customer Orders</h3>
+            <h3 style="font-family:'Outfit',sans-serif; font-size:1.3rem;">📦 Customer Orders</h3>
             <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
               <input type="text" id="adminOrderSearch" placeholder="🔍 Search Order ID or Name..." style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border); padding:6px 12px; border-radius:6px; font-size:0.85rem; width:220px;">
               <div class="filter-tabs" id="ordersFilterTabs" style="margin-bottom:0;">
@@ -139,11 +137,11 @@
               <thead>
                 <tr>
                   <th>Order ID</th>
-                  <th>Customer Name *</th>
+                  <th>Customer Name</th>
                   <th>Items & Notes</th>
                   <th>Payment Method</th>
                   <th>Total</th>
-                  <th>Pickup</th>
+                  <th>Pickup/Time</th>
                   <th>Status</th>
                   <th>Action</th>
                 </tr>
@@ -156,22 +154,30 @@
         </div>
       </section>
 
-      <!-- MENU SECTION -->
+      <!-- PRODUCTS & INVENTORY SECTION -->
       <section id="section-menu" class="admin-section">
-        <div class="dash-header">
-          <h2>Menu Items</h2>
+        <div class="dash-header" style="margin-bottom:1.25rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+          <div>
+            <h2>Products & Live Inventory</h2>
+            <p style="color:var(--dash-muted); font-size:0.9rem;">Manage stock quantities, upload custom images, and add new items to your store.</p>
+          </div>
+          <button type="button" class="btn btn-primary" id="btnOpenAddProduct" style="display:flex; align-items:center; gap:8px; font-weight:700; padding:10px 20px; border-radius:10px;">
+            <span>➕</span> Add New Product
+          </button>
         </div>
+
         <div class="admin-card">
           <div class="admin-table-container">
             <table class="admin-table">
               <thead>
                 <tr>
-                  <th>Item</th>
-                  <th>Name</th>
+                  <th>Image</th>
+                  <th>Product Details</th>
                   <th>Category</th>
-                  <th>Base Price</th>
-                  <th>Status</th>
-                  <th>Action</th>
+                  <th>Price</th>
+                  <th style="min-width:160px;">Stock Level</th>
+                  <th>Availability</th>
+                  <th style="text-align:right;">Actions</th>
                 </tr>
               </thead>
               <tbody id="menuAdminTable">
@@ -219,7 +225,7 @@
           <p style="color:var(--dash-muted); margin-bottom:16px; font-size:0.9rem;">Create custom discount codes that your customers can use at checkout.</p>
           
           <form id="addPromoForm" style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
-            <input type="text" id="promoCodeInput" placeholder="Code (e.g. SUMMER20)" style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border); padding:8px 12px; border-radius:6px; flex:1; min-width:140px; text-transform:uppercase;" required>
+            <input type="text" id="promoCodeInput" placeholder="Code (e.g. SUGAR10)" style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border); padding:8px 12px; border-radius:6px; flex:1; min-width:140px; text-transform:uppercase;" required>
             <input type="number" id="promoDiscountInput" placeholder="Discount %" min="1" max="100" style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border); padding:8px 12px; border-radius:6px; width:110px;" required>
             <button type="submit" class="btn btn-primary" style="padding:8px 16px; font-size:0.85rem;">+ Create Code</button>
           </form>
@@ -241,16 +247,114 @@
         </div>
 
         <div class="admin-card" style="max-width:650px;">
-          <h3 style="margin-bottom:12px; font-family:'Outfit',sans-serif;">Export & Security</h3>
-          <p style="color:var(--dash-muted); margin-bottom:16px; font-size:0.9rem;">Download backup orders data or update password.</p>
+          <h3 style="margin-bottom:12px; font-family:'Outfit',sans-serif;">Export & Reset Data</h3>
+          <p style="color:var(--dash-muted); margin-bottom:16px; font-size:0.9rem;">Download backup orders data or reset stock defaults.</p>
           <div style="display:flex; gap:12px; flex-wrap:wrap;">
             <button type="button" class="btn btn-outline" id="btnExportCSV">📥 Export Orders (CSV)</button>
-            <button type="button" class="btn btn-outline" id="btnClearData" style="color:var(--dash-red); border-color:rgba(239,68,68,0.3);">🗑️ Clear All Data</button>
+            <button type="button" class="btn btn-outline" id="btnResetInventory" style="color:#fbbf24; border-color:rgba(251,191,36,0.3);">🔄 Reset Initial Inventory</button>
+            <button type="button" class="btn btn-outline" id="btnClearData" style="color:var(--dash-red); border-color:rgba(239,68,68,0.3);">🗑️ Clear All Orders</button>
           </div>
         </div>
       </section>
 
     </main>
+  </div>
+
+  <!-- ADD / EDIT PRODUCT MODAL -->
+  <div class="admin-modal-overlay" id="productModal" style="display:none;">
+    <div class="admin-modal-card">
+      <div class="admin-modal-header">
+        <h3 id="modalProductTitle">➕ Add New Product</h3>
+        <button type="button" class="admin-modal-close" id="btnCloseProductModal">&times;</button>
+      </div>
+      
+      <form id="productForm" class="admin-modal-body">
+        <input type="hidden" id="prodEditId" value="">
+        
+        <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-bottom:1rem;">
+          <div class="form-group">
+            <label style="display:block; margin-bottom:6px; font-weight:600; color:var(--dash-text); font-size:0.85rem;">Product Name *</label>
+            <input type="text" id="prodName" class="input" placeholder="e.g. 3D Printed Dragon" style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border);" required>
+          </div>
+          <div class="form-group">
+            <label style="display:block; margin-bottom:6px; font-weight:600; color:var(--dash-text); font-size:0.85rem;">Category *</label>
+            <select id="prodCategory" class="select" style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border); width:100%;" required>
+              <option value="fidgets">🫧 Fidgets & Squishies</option>
+              <option value="3d-prints">🖨️ 3D Prints & Models</option>
+              <option value="novelties">🎁 Novelties & Desk Toys</option>
+              <option value="sweets">🍭 Sweet Treats</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-bottom:1rem;">
+          <div class="form-group">
+            <label style="display:block; margin-bottom:6px; font-weight:600; color:var(--dash-text); font-size:0.85rem;">Price ($ USD) *</label>
+            <input type="number" id="prodPrice" class="input" placeholder="4.50" step="0.25" min="0" style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border);" required>
+          </div>
+          <div class="form-group">
+            <label style="display:block; margin-bottom:6px; font-weight:600; color:var(--dash-text); font-size:0.85rem;">Initial Stock Quantity *</label>
+            <input type="number" id="prodStock" class="input" placeholder="1" min="0" style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border);" required>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label style="display:block; margin-bottom:6px; font-weight:600; color:var(--dash-text); font-size:0.85rem;">Description</label>
+          <textarea id="prodDesc" class="textarea" rows="3" placeholder="Describe the item features, materials, and squishy/sensory feel..." style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border);"></textarea>
+        </div>
+
+        <!-- IMAGE IMPORT & UPLOAD COMPONENT -->
+        <div class="form-group" style="margin-bottom:1rem; background:rgba(255,255,255,0.03); padding:1rem; border-radius:10px; border:1px solid var(--dash-border);">
+          <label style="display:block; margin-bottom:8px; font-weight:700; color:#fff; font-size:0.9rem;">📸 Product Image</label>
+          
+          <div style="display:grid; grid-template-columns: 120px 1fr; gap:1rem; align-items:center;">
+            <!-- Live Preview -->
+            <div id="imagePreviewContainer" style="width:120px; height:120px; border-radius:10px; border:2px dashed var(--dash-border); background:var(--dash-card2); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative;">
+              <span id="imagePreviewPlaceholder" style="font-size:2rem;">🖼️</span>
+              <img id="imagePreview" src="" alt="Preview" style="display:none; width:100%; height:100%; object-fit:cover;">
+            </div>
+
+            <!-- Upload Controls -->
+            <div>
+              <div style="margin-bottom:8px;">
+                <label class="btn btn-sm btn-outline" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; color:#fff; border-color:var(--dash-primary); background:rgba(139,92,246,0.1);">
+                  <span>📁</span> Choose Image File
+                  <input type="file" id="prodImageFile" accept="image/*" style="display:none;">
+                </label>
+                <button type="button" id="btnRemoveImage" class="btn btn-sm btn-ghost" style="display:none; color:var(--dash-red); margin-left:8px;">Remove</button>
+              </div>
+              <div style="font-size:0.75rem; color:var(--dash-muted); margin-bottom:8px;">OR paste an image web URL:</div>
+              <input type="text" id="prodImageUrl" class="input" placeholder="https://example.com/image.jpg" style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border); font-size:0.85rem; padding:6px 10px;">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-bottom:1rem;">
+          <div class="form-group">
+            <label style="display:block; margin-bottom:6px; font-weight:600; color:var(--dash-text); font-size:0.85rem;">Color Variations (optional)</label>
+            <input type="text" id="prodFlavors" class="input" placeholder="Pink, Blue, Purple (comma-separated)" style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border);">
+          </div>
+          <div class="form-group">
+            <label style="display:block; margin-bottom:6px; font-weight:600; color:var(--dash-text); font-size:0.85rem;">Fallback Emoji</label>
+            <input type="text" id="prodEmoji" class="input" placeholder="✨" style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border); width:100px;">
+          </div>
+        </div>
+
+        <div style="display:flex; gap:1.5rem; margin-bottom:1.5rem;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#fff; font-size:0.9rem;">
+            <input type="checkbox" id="prodFeatured" checked> Feature on Homepage
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#fff; font-size:0.9rem;">
+            <input type="checkbox" id="prodPopular" checked> Mark as Popular
+          </label>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:12px; border-top:1px solid var(--dash-border); padding-top:1rem;">
+          <button type="button" class="btn btn-outline" id="btnCancelProductModal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSaveProduct">Save Product</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- Firebase SDK -->

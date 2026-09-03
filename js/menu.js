@@ -1,4 +1,4 @@
-// js/menu.js
+// js/menu.js - The Sugar Printer Catalog Script
 
 document.addEventListener('DOMContentLoaded', () => {
   if (!document.getElementById('productGrid')) return;
@@ -6,9 +6,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const state = {
     filter: 'all',
     search: '',
-    sort: 'name',
-    items: typeof getMenuItems === 'function' ? getMenuItems() : (typeof MENU_ITEMS !== 'undefined' ? MENU_ITEMS : [])
+    sort: 'featured',
+    items: []
   };
+
+  function loadFreshItems() {
+    state.items = (typeof PPUtils !== 'undefined' && PPUtils.getMenuItems) ? PPUtils.getMenuItems() : (window.MENU_ITEMS || []);
+  }
+
+  loadFreshItems();
 
   // Elements
   const productGrid = document.getElementById('productGrid');
@@ -21,13 +27,16 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Modal Elements
   const modal = document.getElementById('productModal');
-  const modalClose = modal.querySelector('.modal-close');
+  const modalClose = modal ? modal.querySelector('.modal-close') : null;
   const modalImage = document.getElementById('modalImage');
   const modalEmoji = document.getElementById('modalEmoji');
+  const modalImgTag = document.getElementById('modalImgTag');
   const modalFavorite = document.getElementById('modalFavorite');
+  const modalCategoryTag = document.getElementById('modalCategoryTag');
   const modalName = document.getElementById('modalName');
   const modalRating = document.getElementById('modalRating');
   const modalDescription = document.getElementById('modalDescription');
+  const modalStockStatus = document.getElementById('modalStockStatus');
   const modalSizes = document.getElementById('modalSizes');
   const modalFlavors = document.getElementById('modalFlavors');
   const modalAddins = document.getElementById('modalAddins');
@@ -41,72 +50,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentModalItem = null;
   let modalSelections = {
-    size: null,
+    size: 'single',
     flavor: null,
     addIns: [],
     quantity: 1
   };
 
+  // Listen for inventory updates from admin or orders
+  window.addEventListener('inventoryUpdated', () => {
+    loadFreshItems();
+    filterAndSort();
+  });
+
   // Init
   filterAndSort();
 
-  // Global event delegation for Admin Availability Toggle
-  document.addEventListener('click', (e) => {
-    const toggleBtn = e.target.closest('.toggle-avail-btn');
-    if (toggleBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      const itemId = toggleBtn.dataset.id;
-      if (!itemId) return;
+  // Check URL params for item
+  const urlParams = new URLSearchParams(window.location.search);
+  const requestedItem = urlParams.get('item');
+  if (requestedItem) {
+    setTimeout(() => openProductModal(requestedItem), 150);
+  }
 
-      let currentOverrides = {};
-      try {
-        currentOverrides = (typeof PPUtils !== 'undefined' && PPUtils.getStorage) ? PPUtils.getStorage('pp_menu_overrides') : JSON.parse(localStorage.getItem('pp_menu_overrides'));
-      } catch(err) {}
-      currentOverrides = currentOverrides || {};
-      if (!currentOverrides[itemId]) currentOverrides[itemId] = {};
-
-      const isCurrentlySoldOut = !!currentOverrides[itemId].soldOut;
-      currentOverrides[itemId].soldOut = !isCurrentlySoldOut;
-
-      if (typeof PPUtils !== 'undefined' && PPUtils.setStorage) {
-        PPUtils.setStorage('pp_menu_overrides', currentOverrides);
-      } else {
-        localStorage.setItem('pp_menu_overrides', JSON.stringify(currentOverrides));
-      }
-
-      if (typeof showToast === 'function') {
-        showToast(!isCurrentlySoldOut ? 'Item marked unavailable for customers!' : 'Item is now available!', 'info');
-      }
-
-      filterAndSort();
-    }
-  });
-
-  // Search Debounce
+  // Search Input
   let searchTimeout;
-  if(searchInput) {
+  if (searchInput) {
     searchInput.addEventListener('input', (e) => {
       clearTimeout(searchTimeout);
       searchTimeout = setTimeout(() => {
-        state.search = e.target.value.toLowerCase();
+        state.search = e.target.value.toLowerCase().trim();
         filterAndSort();
-      }, 300);
+      }, 200);
     });
   }
 
   // Filter Tabs
   filterTabs.forEach(tab => {
-    tab.addEventListener('click', (e) => {
+    tab.addEventListener('click', () => {
       filterTabs.forEach(t => t.classList.remove('active'));
-      e.target.classList.add('active');
-      state.filter = e.target.dataset.filter;
+      tab.classList.add('active');
+      state.filter = tab.dataset.filter;
       filterAndSort();
     });
   });
 
-  // Sort Select
-  if(sortSelect) {
+  // Sort
+  if (sortSelect) {
     sortSelect.addEventListener('change', (e) => {
       state.sort = e.target.value;
       filterAndSort();
@@ -114,44 +103,54 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Clear Filters
-  if(clearFiltersBtn) {
+  if (clearFiltersBtn) {
     clearFiltersBtn.addEventListener('click', () => {
-      searchInput.value = '';
-      state.search = '';
-      filterTabs.forEach(t => t.classList.remove('active'));
-      document.querySelector('.filter-tab[data-filter="all"]').classList.add('active');
       state.filter = 'all';
-      sortSelect.value = 'name';
-      state.sort = 'name';
+      state.search = '';
+      if (searchInput) searchInput.value = '';
+      filterTabs.forEach(t => t.classList.toggle('active', t.dataset.filter === 'all'));
       filterAndSort();
     });
   }
 
   function filterAndSort() {
+    loadFreshItems();
+
     let filtered = state.items.filter(item => {
-      const matchesSearch = item.name.toLowerCase().includes(state.search) || 
-                            item.category.toLowerCase().includes(state.search);
       let matchesFilter = true;
-      if (state.filter === 'cold') matchesFilter = item.subtype === 'cold';
-      else if (state.filter === 'hot') matchesFilter = item.subtype === 'hot';
-      else if (state.filter === 'dessert') matchesFilter = item.type === 'dessert';
-      
-      return matchesSearch && matchesFilter;
+      if (state.filter !== 'all') {
+        matchesFilter = (item.category === state.filter || item.type === state.filter);
+      }
+
+      let matchesSearch = true;
+      if (state.search) {
+        const nameMatch = (item.name || '').toLowerCase().includes(state.search);
+        const descMatch = (item.description || '').toLowerCase().includes(state.search);
+        const catMatch = (item.categoryLabel || item.category || '').toLowerCase().includes(state.search);
+        matchesSearch = nameMatch || descMatch || catMatch;
+      }
+
+      return matchesFilter && matchesSearch;
     });
 
+    // Sorting
     filtered.sort((a, b) => {
-      if (state.sort === 'name') return a.name.localeCompare(b.name);
-      if (state.sort === 'price-low') {
-        const aPrice = a.prices.single || a.prices.medium || 0;
-        const bPrice = b.prices.single || b.prices.medium || 0;
-        return aPrice - bPrice;
+      const priceA = a.prices ? (a.prices.single || a.prices.medium || a.prices.small || a.price || 0) : 0;
+      const priceB = b.prices ? (b.prices.single || b.prices.medium || b.prices.small || b.price || 0) : 0;
+
+      if (state.sort === 'featured') {
+        if (a.featured && !b.featured) return -1;
+        if (!a.featured && b.featured) return 1;
+        return (b.rating || 5) - (a.rating || 5);
+      } else if (state.sort === 'price-low') {
+        return priceA - priceB;
+      } else if (state.sort === 'price-high') {
+        return priceB - priceA;
+      } else if (state.sort === 'rating') {
+        return (b.rating || 0) - (a.rating || 0);
+      } else if (state.sort === 'name') {
+        return (a.name || '').localeCompare(b.name || '');
       }
-      if (state.sort === 'price-high') {
-        const aPrice = a.prices.single || a.prices.medium || 0;
-        const bPrice = b.prices.single || b.prices.medium || 0;
-        return bPrice - aPrice;
-      }
-      if (state.sort === 'rating') return (b.rating || 5) - (a.rating || 5);
       return 0;
     });
 
@@ -160,242 +159,190 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderProducts(items) {
     productGrid.innerHTML = '';
-    
-    // Check Admin state
-    const isAdminLoggedIn = sessionStorage.getItem('pp_admin_logged_in') === 'true';
-    let currentUserEmail = sessionStorage.getItem('pp_admin_user');
-    if (!currentUserEmail) {
-      try {
-        const u = JSON.parse(localStorage.getItem('pp_user'));
-        if (u && (u.isAdmin || ['admin', 'yahiamoon13@gmail.com', 'meqdad@gmail.com'].includes((u.email || '').toLowerCase().trim()))) {
-          currentUserEmail = u.email;
-        }
-      } catch(e) {}
-    }
-    const isUserAdmin = isAdminLoggedIn || !!currentUserEmail;
+    resultCount.textContent = `${items.length} product${items.length === 1 ? '' : 's'}`;
 
-    let overrides = {};
-    try {
-      overrides = (typeof PPUtils !== 'undefined' && PPUtils.getStorage) ? PPUtils.getStorage('pp_menu_overrides') : JSON.parse(localStorage.getItem('pp_menu_overrides'));
-    } catch(e) {}
-    overrides = overrides || {};
-
-    // Filter items based on soldOut status & admin role
-    let visibleItems = items.filter(item => {
-      const isSoldOut = overrides[item.id]?.soldOut || item.soldOut || false;
-      // Normal users CANNOT see sold out items!
-      if (!isUserAdmin && isSoldOut) return false;
-      return true;
-    });
-
-    resultCount.textContent = `${visibleItems.length} items`;
-    
-    if (visibleItems.length === 0) {
+    if (items.length === 0) {
       emptyState.style.display = 'block';
+      return;
     } else {
       emptyState.style.display = 'none';
-      visibleItems.forEach(item => {
-        const isSoldOut = overrides[item.id]?.soldOut || item.soldOut || false;
-
-        const card = document.createElement('div');
-        card.className = `product-card ${isSoldOut ? 'sold-out' : ''}`;
-        card.dataset.id = item.id;
-        
-        if (isSoldOut && isUserAdmin) {
-          card.style.cssText = 'opacity: 0.65; filter: grayscale(0.4); border: 2px dashed #ef4444; position: relative;';
-        }
-        
-        let priceText = '';
-        if (item.prices.single) priceText = `$${item.prices.single.toFixed(2)}`;
-        else if (item.prices.small && item.prices.large) priceText = `$${item.prices.small.toFixed(2)} - $${item.prices.large.toFixed(2)}`;
-        else if (item.prices.medium) priceText = `from $${item.prices.medium.toFixed(2)}`;
-        
-        let badgeHtml = '';
-        if (isSoldOut && isUserAdmin) {
-          badgeHtml = `<span class="product-card-badge" style="background:#ef4444; color:white;">🚫 Hidden from Customers</span>`;
-        } else if (item.badge) {
-          badgeHtml = `<span class="product-card-badge">${item.badge}</span>`;
-        }
-
-        const isFav = typeof isFavorite === 'function' ? isFavorite(item.id) : false;
-        
-        let adminBtnHtml = '';
-        if (isUserAdmin) {
-          adminBtnHtml = isSoldOut 
-            ? `<button type="button" class="btn btn-sm toggle-avail-btn" style="background:#22c55e; color:white; margin-top:8px; width:100%; border:none; padding:8px; border-radius:6px; font-weight:700; cursor:pointer;" data-id="${item.id}">✅ Make Re-available</button>`
-            : `<button type="button" class="btn btn-sm toggle-avail-btn" style="background:#ef4444; color:white; margin-top:8px; width:100%; border:none; padding:8px; border-radius:6px; font-weight:700; cursor:pointer;" data-id="${item.id}">🚫 Mark Unavailable</button>`;
-        }
-
-        card.innerHTML = `
-          <div class="product-card-image" style="background: linear-gradient(135deg, ${item.gradient || '#eee, #ccc'})">
-            <button class="product-card-favorite ${isFav ? 'active' : ''}" data-id="${item.id}" aria-label="Favorite">
-              ${isFav ? '♥' : '♡'}
-            </button>
-            ${badgeHtml}
-            <span>${item.emoji}</span>
-          </div>
-          <div class="product-card-body">
-            <h3 class="product-card-name">${item.name}</h3>
-            <div class="product-card-rating">
-              <span>${'⭐'.repeat(Math.floor(item.rating || 5))}</span>
-              <span class="text-muted ml-1">(${item.reviews || 12})</span>
-            </div>
-            <div class="product-card-price">${priceText}</div>
-          </div>
-          <div class="product-card-actions" style="flex-direction:column; gap:6px;">
-            <button class="btn btn-primary btn-full order-btn" data-id="${item.id}" ${isSoldOut ? 'disabled' : ''}>${isSoldOut ? 'Unavailable' : 'Order'}</button>
-            ${adminBtnHtml}
-          </div>
-        `;
-
-        card.addEventListener('click', (e) => {
-          if (!e.target.closest('.order-btn') && !e.target.closest('.product-card-favorite') && !e.target.closest('.toggle-avail-btn')) {
-            if (!isSoldOut) openProductModal(item.id);
-          }
-        });
-
-        const orderBtn = card.querySelector('.order-btn');
-        if (orderBtn && !isSoldOut) {
-          orderBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openProductModal(item.id);
-          });
-        }
-
-        const favBtn = card.querySelector('.product-card-favorite');
-        if (favBtn) {
-          favBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (typeof toggleFavorite === 'function') toggleFavorite(item.id);
-            favBtn.textContent = (favBtn.textContent === '♥') ? '♡' : '♥';
-          });
-        }
-
-        const toggleBtn = card.querySelector('.toggle-avail-btn');
-        if (toggleBtn) {
-          toggleBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            let currentOverrides = {};
-            try {
-              currentOverrides = (typeof PPUtils !== 'undefined' && PPUtils.getStorage) ? PPUtils.getStorage('pp_menu_overrides') : JSON.parse(localStorage.getItem('pp_menu_overrides'));
-            } catch(err) {}
-            currentOverrides = currentOverrides || {};
-            if (!currentOverrides[item.id]) currentOverrides[item.id] = {};
-            currentOverrides[item.id].soldOut = !isSoldOut;
-
-            if (typeof PPUtils !== 'undefined' && PPUtils.setStorage) {
-              PPUtils.setStorage('pp_menu_overrides', currentOverrides);
-            } else {
-              localStorage.setItem('pp_menu_overrides', JSON.stringify(currentOverrides));
-            }
-
-            if (typeof showToast === 'function') {
-              showToast(isSoldOut ? `${item.name} is now available!` : `${item.name} marked unavailable for customers!`, 'info');
-            }
-
-            filterAndSort();
-          });
-        }
-
-        productGrid.appendChild(card);
-      });
     }
+
+    items.forEach(item => {
+      const card = createProductCardElement(item);
+      productGrid.appendChild(card);
+    });
   }
 
-  function openProductModal(itemId) {
-    currentModalItem = state.items.find(i => i.id === itemId);
-    if (!currentModalItem || currentModalItem.soldOut) return;
+  function createProductCardElement(item) {
+    const card = document.createElement('div');
+    const stock = (item.stock !== undefined) ? parseInt(item.stock, 10) : 1;
+    const isSoldOut = (stock <= 0) || item.soldOut;
+    card.className = `product-card ${isSoldOut ? 'sold-out' : ''}`;
+    card.dataset.id = item.id;
 
-    modalEmoji.textContent = currentModalItem.emoji;
-    modalImage.style.background = `linear-gradient(135deg, ${currentModalItem.gradient || '#eee, #ccc'})`;
-    modalName.textContent = currentModalItem.name;
-    modalDescription.textContent = currentModalItem.description || `Enjoy our delicious ${currentModalItem.name}!`;
-    modalRating.innerHTML = `<span>${'⭐'.repeat(Math.floor(currentModalItem.rating || 5))}</span>`;
-    
-    const isFav = typeof isFavorite === 'function' ? isFavorite(currentModalItem.id) : false;
-    modalFavorite.textContent = isFav ? '♥' : '♡';
+    const isFav = (typeof PPUtils !== 'undefined' && PPUtils.isFavorite) ? PPUtils.isFavorite(item.id) : false;
+    const price = item.prices ? (item.prices.single || item.prices.medium || item.prices.small || 0) : 0;
 
-    modalSelections = { size: null, flavor: null, addIns: [], quantity: 1 };
-    modalQty.textContent = '1';
-    modalInstructions.value = '';
-
-    modalSizes.innerHTML = '';
-    if (currentModalItem.prices.single) {
-      document.getElementById('modalSizeSection').style.display = 'none';
-      modalSelections.size = 'single';
+    let stockTagHtml = '';
+    if (isSoldOut) {
+      stockTagHtml = '<div class="stock-pill out">❌ Out of Stock</div>';
+    } else if (stock === 1) {
+      stockTagHtml = '<div class="stock-pill low">⚡ Only 1 Left!</div>';
+    } else if (stock <= 3) {
+      stockTagHtml = `<div class="stock-pill low">🔥 Only ${stock} Left</div>`;
     } else {
-      document.getElementById('modalSizeSection').style.display = 'block';
-      ['small', 'medium', 'large'].forEach(size => {
-        if (currentModalItem.prices[size]) {
-          const btn = document.createElement('div');
-          btn.className = `size-btn ${size === 'medium' ? 'active' : ''}`;
-          btn.textContent = size.charAt(0).toUpperCase() + size.slice(1);
-          btn.dataset.size = size;
-          btn.addEventListener('click', () => {
-            document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            modalSelections.size = size;
-            updateModalPrice();
-          });
-          modalSizes.appendChild(btn);
-          if (size === 'medium') modalSelections.size = 'medium';
+      stockTagHtml = `<div class="stock-pill in">✅ In Stock</div>`;
+    }
+
+    let imageSection = '';
+    if (item.image) {
+      imageSection = `
+        <div class="product-card-image" style="background:#1e1e2e; position:relative; overflow:hidden;">
+          <button class="product-card-favorite" data-id="${item.id}" aria-label="Favorite" style="z-index:4;">${isFav ? '❤️' : '🤍'}</button>
+          <img src="${item.image}" alt="${item.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-size:4rem; background:${item.gradient || '#8b5cf6'}">${item.emoji || '✨'}</div>
+          ${stockTagHtml}
+        </div>
+      `;
+    } else {
+      imageSection = `
+        <div class="product-card-image" style="background: ${item.gradient || 'linear-gradient(135deg, #8b5cf6, #3b82f6)'}; position:relative;">
+          <button class="product-card-favorite" data-id="${item.id}" aria-label="Favorite" style="z-index:4;">${isFav ? '❤️' : '🤍'}</button>
+          <span>${item.emoji || '✨'}</span>
+          ${stockTagHtml}
+        </div>
+      `;
+    }
+
+    card.innerHTML = `
+      ${imageSection}
+      <div class="product-card-body" style="display:flex; flex-direction:column; justify-content:space-between;">
+        <div>
+          <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:var(--pp-primary); margin-bottom:4px;">${item.categoryLabel || item.category}</div>
+          <h3 class="product-card-name" style="font-size:1.15rem; margin-bottom:6px; font-weight:700;">${item.name}</h3>
+          <div class="product-card-rating" style="color:#f59e0b; margin-bottom:8px;">
+            <span>⭐ ${item.rating || '5.0'} (${item.reviews || 1})</span>
+          </div>
+          <p style="font-size:0.85rem; color:var(--pp-text-secondary); line-height:1.4; margin-bottom:12px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${item.description || ''}</p>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--pp-border); padding-top:10px;">
+          <div class="product-card-price" style="font-size:1.25rem; font-weight:800; color:var(--pp-primary);">$${price.toFixed(2)}</div>
+          <button class="btn btn-sm ${isSoldOut ? 'btn-outline' : 'btn-primary'}" style="padding:6px 14px; font-weight:700;">
+            ${isSoldOut ? 'Sold Out' : 'View Item'}
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Favorite Click
+    const favBtn = card.querySelector('.product-card-favorite');
+    if (favBtn) {
+      favBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (typeof PPUtils !== 'undefined' && PPUtils.toggleFavorite) {
+          PPUtils.toggleFavorite(item.id);
+          favBtn.textContent = PPUtils.isFavorite(item.id) ? '❤️' : '🤍';
         }
       });
     }
 
+    card.addEventListener('click', () => {
+      openProductModal(item.id);
+    });
+
+    return card;
+  }
+
+  // --- Modal Logic ---
+  function openProductModal(itemId) {
+    loadFreshItems();
+    currentModalItem = state.items.find(i => i.id === itemId);
+    if (!currentModalItem) return;
+
+    modalSelections = {
+      size: 'single',
+      flavor: (currentModalItem.flavors && currentModalItem.flavors.length > 0) ? currentModalItem.flavors[0] : null,
+      addIns: [],
+      quantity: 1
+    };
+
+    if (modalInstructions) modalInstructions.value = '';
+
+    // Image vs Emoji
+    if (currentModalItem.image) {
+      modalImgTag.src = currentModalItem.image;
+      modalImgTag.style.display = 'block';
+      modalEmoji.style.display = 'none';
+      modalImage.style.background = '#1e1e2e';
+    } else {
+      modalImgTag.style.display = 'none';
+      modalEmoji.style.display = 'block';
+      modalEmoji.textContent = currentModalItem.emoji || '✨';
+      modalImage.style.background = currentModalItem.gradient || 'linear-gradient(135deg, #8b5cf6, #3b82f6)';
+    }
+
+    // Info
+    modalCategoryTag.textContent = (currentModalItem.categoryLabel || currentModalItem.category || 'Item').toUpperCase();
+    modalName.textContent = currentModalItem.name;
+    modalRating.innerHTML = `⭐ ${currentModalItem.rating || '5.0'} (${currentModalItem.reviews || 1} customer reviews)`;
+    modalDescription.textContent = currentModalItem.description || '';
+
+    // Stock
+    const stock = (currentModalItem.stock !== undefined) ? parseInt(currentModalItem.stock, 10) : 1;
+    const isSoldOut = (stock <= 0) || currentModalItem.soldOut;
+
+    if (isSoldOut) {
+      modalStockStatus.innerHTML = '<span style="background:rgba(239,68,68,0.15); color:#ef4444; padding:4px 10px; border-radius:12px; font-weight:700;">❌ Out of Stock</span>';
+      modalAddToCart.disabled = true;
+      modalAddToCart.textContent = 'Out of Stock';
+      modalAddToCart.style.opacity = '0.6';
+      modalAddToCart.style.cursor = 'not-allowed';
+      if (modalQtyPlus) modalQtyPlus.disabled = true;
+      if (modalQtyMinus) modalQtyMinus.disabled = true;
+    } else if (stock === 1) {
+      modalStockStatus.innerHTML = '<span style="background:rgba(245,158,11,0.15); color:#f59e0b; padding:4px 10px; border-radius:12px; font-weight:700;">⚡ Only 1 unit in stock!</span>';
+      modalAddToCart.disabled = false;
+      modalAddToCart.style.opacity = '1';
+      modalAddToCart.style.cursor = 'pointer';
+      if (modalQtyPlus) modalQtyPlus.disabled = false;
+      if (modalQtyMinus) modalQtyMinus.disabled = false;
+    } else {
+      modalStockStatus.innerHTML = `<span style="background:rgba(16,185,129,0.15); color:#10b981; padding:4px 10px; border-radius:12px; font-weight:700;">✅ ${stock} in stock - Ready to order</span>`;
+      modalAddToCart.disabled = false;
+      modalAddToCart.style.opacity = '1';
+      modalAddToCart.style.cursor = 'pointer';
+      if (modalQtyPlus) modalQtyPlus.disabled = false;
+      if (modalQtyMinus) modalQtyMinus.disabled = false;
+    }
+
+    modalQty.textContent = modalSelections.quantity;
+
+    // Flavors / Colors
     modalFlavors.innerHTML = '';
+    const flavorSection = document.getElementById('modalFlavorSection');
     if (currentModalItem.flavors && currentModalItem.flavors.length > 0) {
-      document.getElementById('modalFlavorSection').style.display = 'block';
+      flavorSection.style.display = 'block';
       currentModalItem.flavors.forEach((flavor, index) => {
         const div = document.createElement('div');
         div.className = `flavor-option ${index === 0 ? 'active' : ''}`;
         div.textContent = flavor;
-        div.dataset.flavor = flavor;
         div.addEventListener('click', () => {
-          document.querySelectorAll('.flavor-option').forEach(f => f.classList.remove('active'));
+          modalFlavors.querySelectorAll('.flavor-option').forEach(f => f.classList.remove('active'));
           div.classList.add('active');
           modalSelections.flavor = flavor;
         });
         modalFlavors.appendChild(div);
-        if (index === 0) modalSelections.flavor = flavor;
       });
     } else {
-      document.getElementById('modalFlavorSection').style.display = 'none';
-    }
-
-    modalAddins.innerHTML = '';
-    if (currentModalItem.addIns && currentModalItem.addIns.length > 0) {
-      document.getElementById('modalAddinSection').style.display = 'block';
-      currentModalItem.addIns.forEach(addin => {
-        const addinName = typeof addin === 'string' ? addin : addin.name;
-        const addinPrice = typeof addin === 'object' && addin.price ? addin.price : 0;
-        
-        const div = document.createElement('div');
-        div.className = 'addin-option';
-        div.textContent = addinPrice > 0 ? `+ ${addinName} ($${addinPrice.toFixed(2)})` : `+ ${addinName}`;
-        div.dataset.addin = typeof addin === 'string' ? addin : JSON.stringify(addin);
-        div.addEventListener('click', () => {
-          div.classList.toggle('active');
-          if (div.classList.contains('active')) {
-            modalSelections.addIns.push(addin);
-          } else {
-            modalSelections.addIns = modalSelections.addIns.filter(a => (typeof a === 'string' ? a : a.name) !== addinName);
-          }
-          updateModalPrice();
-        });
-        modalAddins.appendChild(div);
-      });
-    } else {
-      document.getElementById('modalAddinSection').style.display = 'none';
+      flavorSection.style.display = 'none';
     }
 
     updateModalPrice();
     populateAlsoBought(currentModalItem);
-    
+
     modal.style.display = 'flex';
-    requestAnimationFrame(() => {
-      modal.classList.add('active');
-    });
+    requestAnimationFrame(() => modal.classList.add('active'));
   }
 
   function closeModal() {
@@ -408,21 +355,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateModalPrice() {
     if (!currentModalItem) return;
-    let basePrice = currentModalItem.prices[modalSelections.size] || currentModalItem.prices.single || currentModalItem.prices.medium || currentModalItem.prices.small || 0;
-    let addInPrice = modalSelections.addIns.reduce((sum, a) => sum + (typeof a === 'object' && a.price ? a.price : 0), 0);
-    let total = (basePrice + addInPrice) * modalSelections.quantity;
-    modalPrice.textContent = `$${total.toFixed(2)}`;
+    const basePrice = currentModalItem.prices ? (currentModalItem.prices.single || currentModalItem.prices.medium || currentModalItem.prices.small || 0) : 0;
+    const total = basePrice * modalSelections.quantity;
+    if (modalPrice) modalPrice.textContent = `$${total.toFixed(2)}`;
+    if (modalAddToCart && !modalAddToCart.disabled) {
+      modalAddToCart.innerHTML = `Add to Cart - <span id="modalPrice">$${total.toFixed(2)}</span>`;
+    }
   }
 
-  if(modalQtyPlus) {
+  if (modalQtyPlus) {
     modalQtyPlus.addEventListener('click', () => {
-      modalSelections.quantity++;
-      modalQty.textContent = modalSelections.quantity;
-      updateModalPrice();
+      if (!currentModalItem) return;
+      const maxStock = (currentModalItem.stock !== undefined) ? currentModalItem.stock : 1;
+      if (modalSelections.quantity < maxStock) {
+        modalSelections.quantity++;
+        modalQty.textContent = modalSelections.quantity;
+        updateModalPrice();
+      } else {
+        if (typeof PPUtils !== 'undefined' && PPUtils.showToast) {
+          PPUtils.showToast(`Only ${maxStock} in stock!`, 'info');
+        }
+      }
     });
   }
 
-  if(modalQtyMinus) {
+  if (modalQtyMinus) {
     modalQtyMinus.addEventListener('click', () => {
       if (modalSelections.quantity > 1) {
         modalSelections.quantity--;
@@ -432,11 +389,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if(modalClose) {
-    modalClose.addEventListener('click', closeModal);
-  }
-  
-  if(modal) {
+  if (modalClose) modalClose.addEventListener('click', closeModal);
+  if (modal) {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) closeModal();
     });
@@ -446,98 +400,69 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape' && modal) closeModal();
   });
 
-  if(modalAddToCart) {
+  // Add to Cart from Modal
+  if (modalAddToCart) {
     modalAddToCart.addEventListener('click', () => {
-      const basePrice = currentModalItem.prices[modalSelections.size] || currentModalItem.prices.single || currentModalItem.prices.medium || currentModalItem.prices.small || 0;
-      const addInPrice = modalSelections.addIns.reduce((s,a) => s + (typeof a === 'object' && a.price ? a.price : 0), 0);
-      
+      if (!currentModalItem) return;
+      const stock = (currentModalItem.stock !== undefined) ? currentModalItem.stock : 1;
+      if (stock <= 0) return;
+
+      const basePrice = currentModalItem.prices ? (currentModalItem.prices.single || currentModalItem.prices.medium || currentModalItem.prices.small || 0) : 0;
+
       const cartItem = {
         cartId: 'ci_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
         itemId: currentModalItem.id,
         name: currentModalItem.name,
         category: currentModalItem.category,
-        size: modalSelections.size,
         flavor: modalSelections.flavor,
-        addIns: modalSelections.addIns,
         quantity: modalSelections.quantity,
-        unitPrice: basePrice + addInPrice,
-        specialInstructions: modalInstructions.value
+        unitPrice: basePrice,
+        specialInstructions: modalInstructions ? modalInstructions.value : '',
+        image: currentModalItem.image || '',
+        emoji: currentModalItem.emoji || '✨'
       };
-      
-      if (typeof addToCart === 'function') {
-        addToCart(cartItem);
-      } else if (window.PPUtils && window.PPUtils.addToCart) {
-        window.PPUtils.addToCart(cartItem);
+
+      if (typeof PPUtils !== 'undefined' && PPUtils.addToCart) {
+        PPUtils.addToCart(cartItem);
       } else {
         const cart = JSON.parse(localStorage.getItem('pp_cart')) || [];
         cart.push(cartItem);
         localStorage.setItem('pp_cart', JSON.stringify(cart));
-        window.dispatchEvent(new Event('cartUpdated'));
+        window.dispatchEvent(new CustomEvent('cartUpdated', { detail: cart }));
       }
-      
+
       closeModal();
     });
   }
 
-  function quickAdd(item) {
-    const size = item.prices.single ? 'single' : (item.prices.medium ? 'medium' : 'small');
-    const flavor = (item.flavors && item.flavors.length > 0) ? item.flavors[0] : null;
-    
-    const cartItem = {
-      cartId: 'ci_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-      itemId: item.id,
-      name: item.name,
-      category: item.category,
-      size: size,
-      flavor: flavor,
-      addIns: [],
-      quantity: 1,
-      unitPrice: item.prices[size],
-      specialInstructions: ''
-    };
-    
-    if (typeof addToCart === 'function') {
-      addToCart(cartItem);
-      if (typeof showToast === 'function') showToast('Quick added to cart!');
-    } else {
-      const cart = JSON.parse(localStorage.getItem('pp_cart')) || [];
-      cart.push(cartItem);
-      localStorage.setItem('pp_cart', JSON.stringify(cart));
-      window.dispatchEvent(new Event('cartUpdated'));
-    }
-  }
-
-  if(modalFavorite) {
-    modalFavorite.addEventListener('click', () => {
-      if (typeof toggleFavorite === 'function') toggleFavorite(currentModalItem.id);
-      modalFavorite.textContent = (modalFavorite.textContent === '♥') ? '♡' : '♥';
-    });
-  }
-
   function populateAlsoBought(item) {
+    if (!alsoBoughtGrid) return;
     alsoBoughtGrid.innerHTML = '';
-    const otherItems = state.items.filter(i => i.id !== item.id && i.type === item.type);
-    const shuffled = otherItems.sort(() => 0.5 - Math.random());
-    const selected = shuffled.slice(0, 3);
-    
-    selected.forEach(simItem => {
+    const otherItems = state.items.filter(i => i.id !== item.id);
+    const shuffled = otherItems.sort(() => 0.5 - Math.random()).slice(0, 3);
+
+    shuffled.forEach(simItem => {
       const card = document.createElement('div');
       card.className = 'product-card';
       card.style.cursor = 'pointer';
-      
-      let priceText = '';
-      if (simItem.prices.single) priceText = `$${simItem.prices.single.toFixed(2)}`;
-      else if (simItem.prices.small && simItem.prices.large) priceText = `$${simItem.prices.small.toFixed(2)} - $${simItem.prices.large.toFixed(2)}`;
-      
+
+      const price = simItem.prices ? (simItem.prices.single || simItem.prices.medium || simItem.prices.small || 0) : 0;
+
+      let thumbHtml = '';
+      if (simItem.image) {
+        thumbHtml = `<div class="product-card-image" style="height: 100px; overflow:hidden;"><img src="${simItem.image}" alt="${simItem.name}" style="width:100%; height:100%; object-fit:cover;"></div>`;
+      } else {
+        thumbHtml = `<div class="product-card-image" style="height: 100px; font-size: 2.5rem; background: ${simItem.gradient || '#8b5cf6'}"><span>${simItem.emoji || '✨'}</span></div>`;
+      }
+
       card.innerHTML = `
-        <div class="product-card-image" style="height: 100px; font-size: 2.5rem; background: linear-gradient(135deg, ${simItem.gradient || '#eee, #ccc'})">
-          <span>${simItem.emoji}</span>
-        </div>
+        ${thumbHtml}
         <div class="product-card-body" style="padding: 0.75rem;">
           <h4 style="font-size: 0.9rem; margin-bottom: 0.25rem;">${simItem.name}</h4>
-          <div class="product-card-price" style="font-size: 0.8rem;">${priceText}</div>
+          <div class="product-card-price" style="font-size: 0.85rem; color:var(--pp-primary); font-weight:700;">$${price.toFixed(2)}</div>
         </div>
       `;
+
       card.addEventListener('click', () => {
         openProductModal(simItem.id);
       });

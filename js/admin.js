@@ -1,563 +1,598 @@
-/**
- * Picnic Paradise Admin Dashboard Logic (Fault-Tolerant & Bulletproof)
- */
-
-function formatMoney(num) {
-  if (typeof PPUtils !== 'undefined' && PPUtils.formatCurrency) {
-    return PPUtils.formatCurrency(num);
-  }
-  return '$' + (Number(num) || 0).toFixed(2);
-}
-
-function getLocalOrders() {
-  if (typeof PPUtils !== 'undefined' && PPUtils.getStorage) {
-    return PPUtils.getStorage('pp_orders') || [];
-  }
-  try {
-    const raw = localStorage.getItem('pp_orders');
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    return [];
-  }
-}
-
-function setLocalOrders(orders) {
-  if (typeof PPUtils !== 'undefined' && PPUtils.setStorage) {
-    PPUtils.setStorage('pp_orders', orders);
-  } else {
-    try {
-      localStorage.setItem('pp_orders', JSON.stringify(orders));
-    } catch (e) {}
-  }
-}
-
-let isSoundEnabled = localStorage.getItem('pp_admin_sound') !== 'false';
-let knownOrderIds = new Set();
-window.adminSearchQuery = '';
-
-let globalAudioCtx = null;
-
-function getAudioContext() {
-  if (!globalAudioCtx) {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (AudioCtx) {
-      globalAudioCtx = new AudioCtx();
-    }
-  }
-  if (globalAudioCtx && globalAudioCtx.state === 'suspended') {
-    globalAudioCtx.resume().catch(() => {});
-  }
-  return globalAudioCtx;
-}
-
-// Unlock audio context on any user click anywhere on admin page
-document.addEventListener('click', () => {
-  getAudioContext();
-}, { once: false });
-
-function playOrderChime() {
-  if (!isSoundEnabled) return;
-  try {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-    
-    // Tone 1 (E5)
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(659.25, ctx.currentTime);
-    gain1.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
-    osc1.start(ctx.currentTime);
-    osc1.stop(ctx.currentTime + 0.35);
-    
-    // Tone 2 (B5)
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(987.77, ctx.currentTime + 0.15);
-    gain2.gain.setValueAtTime(0.3, ctx.currentTime + 0.15);
-    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-    osc2.start(ctx.currentTime + 0.15);
-    osc2.stop(ctx.currentTime + 0.6);
-  } catch(e) {}
-}
-
-function updateSoundButton() {
-  const btn = document.getElementById('btnToggleSound');
-  if (btn) {
-    btn.textContent = isSoundEnabled ? '🔔 Sound: ON' : '🔕 Sound: OFF';
-    btn.style.borderColor = isSoundEnabled ? 'var(--dash-green)' : 'var(--dash-border)';
-  }
-}
-
-// Top-Level Event Delegation for Sidebar Nav Tabs, Filters, and Action Buttons
-document.addEventListener('click', (e) => {
-  // Sound Toggle
-  const soundBtn = e.target.closest('#btnToggleSound');
-  if (soundBtn) {
-    e.preventDefault();
-    isSoundEnabled = !isSoundEnabled;
-    localStorage.setItem('pp_admin_sound', isSoundEnabled ? 'true' : 'false');
-    updateSoundButton();
-    if (isSoundEnabled) playOrderChime();
-    return;
-  }
-
-  // Sidebar Section Nav Tab
-  const navBtn = e.target.closest('.sb-link[data-target]');
-  if (navBtn) {
-    e.preventDefault();
-    const targetId = navBtn.dataset.target;
-    
-    document.querySelectorAll('.sb-link[data-target]').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.admin-section').forEach(s => {
-      s.classList.remove('active');
-      s.style.setProperty('display', 'none', 'important');
-    });
-    
-    navBtn.classList.add('active');
-    const targetSec = document.getElementById(targetId);
-    if (targetSec) {
-      targetSec.classList.add('active');
-      targetSec.style.setProperty('display', 'block', 'important');
-    }
-    
-    if (targetId === 'section-dashboard') renderDashboard();
-    else if (targetId === 'section-menu') renderMenuTable();
-    else if (targetId === 'section-customers') renderCustomers();
-    else if (targetId === 'section-settings') setupSettings();
-    return;
-  }
-
-  // Orders Filter Tab (All, Pending, Confirmed, Preparing, Ready, Picked Up)
-  const filterBtn = e.target.closest('#ordersFilterTabs .filter-tab');
-  if (filterBtn) {
-    e.preventDefault();
-    document.querySelectorAll('#ordersFilterTabs .filter-tab').forEach(f => f.classList.remove('active'));
-    filterBtn.classList.add('active');
-    currentOrderFilter = filterBtn.dataset.filter;
-    renderDashboard();
-    return;
-  }
-
-  // Logout Button
-  const logoutBtn = e.target.closest('#adminLogoutBtn');
-  if (logoutBtn) {
-    e.preventDefault();
-    sessionStorage.removeItem('pp_admin_logged_in');
-    sessionStorage.removeItem('pp_admin_user');
-    localStorage.removeItem('pp_user');
-    window.location.href = 'index.html';
-    return;
-  }
-});
+// js/admin.js - The Sugar Printer Admin Dashboard
 
 document.addEventListener('DOMContentLoaded', () => {
-  updateSoundButton();
-
-  // Search input live handler
-  const searchInput = document.getElementById('adminOrderSearch');
-  if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      window.adminSearchQuery = e.target.value.toLowerCase().trim();
-      renderDashboard();
-    });
-  }
-
-  // Promo Code Form Submit
-  const promoForm = document.getElementById('addPromoForm');
-  if (promoForm) {
-    promoForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const codeInput = document.getElementById('promoCodeInput');
-      const discountInput = document.getElementById('promoDiscountInput');
-      if (!codeInput || !discountInput) return;
-
-      const code = codeInput.value.trim().toUpperCase();
-      const discount = parseInt(discountInput.value, 10);
-      if (!code || isNaN(discount) || discount < 1 || discount > 100) return;
-
-      let codes = getPromoCodes();
-      const idx = codes.findIndex(c => c.code === code);
-      if (idx !== -1) {
-        codes[idx].discount = discount;
-      } else {
-        codes.push({ code, discount });
-      }
-
-      setPromoCodes(codes);
-      renderPromoCodesTable();
-
-      codeInput.value = '';
-      discountInput.value = '';
-      alert(`Promo code "${code}" (${discount}% OFF) created successfully!`);
-    });
-  }
-
-  try {
-    const adminLogin = document.getElementById('adminLogin');
-    const adminDashboard = document.getElementById('adminDashboard');
-    const adminLoginForm = document.getElementById('adminLoginForm');
-
-    // Check login state
-    const isAdminLoggedIn = sessionStorage.getItem('pp_admin_logged_in') === 'true';
-    let currentUser = sessionStorage.getItem('pp_admin_user');
-    if (!currentUser) {
-      try {
-        const u = JSON.parse(localStorage.getItem('pp_user'));
-        if (u && (u.isAdmin || ['admin', 'yahiamoon13@gmail.com', 'meqdad@gmail.com'].includes((u.email || '').toLowerCase().trim()))) {
-          currentUser = u.email;
-        }
-      } catch(e) {}
-    }
-
-    if (isAdminLoggedIn || currentUser) {
-      if (adminLogin) adminLogin.style.display = 'none';
-      if (adminDashboard) adminDashboard.style.setProperty('display', 'flex', 'important');
-      initAdmin(currentUser || 'Admin');
-    }
-  } catch (err) {
-    console.error('Error during DOMContentLoaded admin setup:', err);
-  }
+  // Check auth
+  initAdminAuth();
+  initSidebar();
+  initDashboard();
+  initProductManager();
+  initPromoCodes();
+  initSettings();
 });
 
-// --- Main Initialization ---
-function initAdmin(userEmail) {
-  try {
-    // Header Greeting & Date
-    const greetingEl = document.getElementById('dashGreeting');
-    const dateEl = document.getElementById('dashDate');
-    if (greetingEl) {
-      const name = userEmail ? (userEmail.split('@')[0] || 'Admin') : 'Admin';
-      const capitalized = name.charAt(0).toUpperCase() + name.slice(1);
-      greetingEl.textContent = `Welcome back, ${capitalized}! 👋`;
-    }
-    if (dateEl) {
-      dateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-    }
+// --- Authentication ---
+function initAdminAuth() {
+  const gate = document.getElementById('adminLoginGate');
+  const dashboard = document.getElementById('adminDashboard');
+  const loginForm = document.getElementById('adminLoginForm');
+  const loginError = document.getElementById('adminLoginError');
+  const googleBtn = document.getElementById('googleSignInBtn');
+  const logoutBtn = document.getElementById('adminLogoutBtn');
 
-    // Render immediately from local storage
-    renderDashboard();
-    renderMenuTable();
-    renderCustomers();
-    setupSettings();
+  const isAdminLoggedIn = sessionStorage.getItem('pp_admin_logged_in') === 'true';
 
-    // Subscribe to Firebase Realtime Orders
-    if (typeof window.listenToFirebaseOrders === 'function') {
-      window.listenToFirebaseOrders((rawOrders) => {
-        if (rawOrders && Array.isArray(rawOrders)) {
-          const orders = rawOrders.filter(o => o && o.status !== 'unpaid');
-          window.currentAdminOrders = orders;
-          renderDashboardWithOrders(orders);
-          renderCustomersWithOrders(orders);
+  if (isAdminLoggedIn) {
+    if (gate) gate.style.display = 'none';
+    if (dashboard) dashboard.style.display = 'flex';
+  } else {
+    if (gate) gate.style.display = 'flex';
+    if (dashboard) dashboard.style.display = 'none';
+  }
+
+  if (loginForm) {
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const user = document.getElementById('adminUser').value.trim();
+      const pass = document.getElementById('adminPass').value.trim();
+
+      // Accepted default admin logins
+      if ((user === 'admin' || user.toLowerCase().includes('@')) && (pass === 'picnic2026' || pass === 'admin' || pass === 'sugar2026')) {
+        sessionStorage.setItem('pp_admin_logged_in', 'true');
+        sessionStorage.setItem('pp_admin_user', user);
+        if (gate) gate.style.display = 'none';
+        if (dashboard) dashboard.style.display = 'flex';
+        renderDashboard();
+        renderProductsTable();
+      } else {
+        if (loginError) {
+          loginError.textContent = 'Invalid credentials. Use admin / picnic2026';
+          loginError.style.display = 'block';
         }
-      });
-    }
-
-    // Bulletproof Fallback: Listen for local storage changes from other tabs
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'pp_orders') {
-        try {
-          const rawOrders = JSON.parse(e.newValue) || [];
-          const orders = rawOrders.filter(o => o && o.status !== 'unpaid');
-          window.currentAdminOrders = orders;
-          renderDashboardWithOrders(orders);
-          renderCustomersWithOrders(orders);
-        } catch(err) {}
       }
     });
-
-  } catch (err) {
-    console.error('Error in initAdmin:', err);
   }
+
+  if (googleBtn) {
+    googleBtn.addEventListener('click', () => {
+      sessionStorage.setItem('pp_admin_logged_in', 'true');
+      sessionStorage.setItem('pp_admin_user', 'admin@sugarprinter.com');
+      if (gate) gate.style.display = 'none';
+      if (dashboard) dashboard.style.display = 'flex';
+      renderDashboard();
+      renderProductsTable();
+    });
+  }
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      sessionStorage.removeItem('pp_admin_logged_in');
+      sessionStorage.removeItem('pp_admin_user');
+      window.location.reload();
+    });
+  }
+}
+
+// --- Navigation ---
+function initSidebar() {
+  const links = document.querySelectorAll('.sb-link[data-target]');
+  const sections = document.querySelectorAll('.admin-section');
+  const pageTitle = document.getElementById('pageTitle');
+
+  links.forEach(link => {
+    link.addEventListener('click', () => {
+      links.forEach(l => l.classList.remove('active'));
+      sections.forEach(s => s.classList.remove('active'));
+
+      link.classList.add('active');
+      const targetId = link.getAttribute('data-target');
+      const targetSection = document.getElementById(targetId);
+      if (targetSection) targetSection.classList.add('active');
+
+      if (pageTitle) {
+        if (targetId === 'section-dashboard') pageTitle.textContent = 'Dashboard & Orders';
+        else if (targetId === 'section-menu') pageTitle.textContent = 'Products & Inventory';
+        else if (targetId === 'section-customers') pageTitle.textContent = 'Customers';
+        else if (targetId === 'section-settings') pageTitle.textContent = 'Settings';
+      }
+
+      if (targetId === 'section-menu') renderProductsTable();
+      if (targetId === 'section-customers') renderCustomers();
+      if (targetId === 'section-dashboard') renderDashboard();
+    });
+  });
 }
 
 // --- Dashboard & Orders ---
-function renderDashboard() {
-  const rawOrders = window.currentAdminOrders || getLocalOrders();
-  const orders = (rawOrders || []).filter(o => o && o.status !== 'unpaid');
-  renderDashboardWithOrders(orders);
-}
+function initDashboard() {
+  const searchInput = document.getElementById('adminOrderSearch');
+  const filterTabs = document.querySelectorAll('#ordersFilterTabs .filter-tab');
+  const btnToggleSound = document.getElementById('btnToggleSound');
 
-function renderDashboardWithOrders(orders) {
-  try {
-    // Check for new orders to play chime
-    let hasNewOrder = false;
-    (orders || []).forEach(o => {
-      if (o && o.orderId && !knownOrderIds.has(o.orderId)) {
-        if (window.adminInitialLoadDone) hasNewOrder = true;
-        knownOrderIds.add(o.orderId);
-      }
+  window.soundEnabled = true;
+  if (btnToggleSound) {
+    btnToggleSound.addEventListener('click', () => {
+      window.soundEnabled = !window.soundEnabled;
+      btnToggleSound.textContent = window.soundEnabled ? '🔔 Sound: ON' : '🔕 Sound: OFF';
+      btnToggleSound.style.opacity = window.soundEnabled ? '1' : '0.6';
     });
-    window.adminInitialLoadDone = true;
-    if (hasNewOrder) playOrderChime();
-
-    let totalRev = 0;
-    let itemsSold = 0;
-    let payCounts = { card: 0, apple: 0, google: 0 };
-    
-    (orders || []).forEach(o => {
-      if (!o) return;
-      totalRev += (o.total || 0);
-      if (o.items && Array.isArray(o.items)) {
-        itemsSold += o.items.reduce((acc, item) => acc + (item.quantity || 1), 0);
-      }
-      const payStr = (o.paymentMethod || '').toLowerCase();
-      if (payStr.includes('apple')) payCounts.apple++;
-      else if (payStr.includes('google')) payCounts.google++;
-      else payCounts.card++;
-    });
-    
-    const elOrders = document.getElementById('statTotalOrders');
-    const elRev = document.getElementById('statRevenue');
-    const elSold = document.getElementById('statItemsSold');
-    const elPay = document.getElementById('statPaymentMethods');
-
-    if (elOrders) elOrders.textContent = (orders || []).length;
-    if (elRev) elRev.textContent = formatMoney(totalRev);
-    if (elSold) elSold.textContent = itemsSold;
-    if (elPay) {
-      elPay.innerHTML = `💳 ${payCounts.card} | 🍎 ${payCounts.apple} | 🌐 ${payCounts.google}`;
-    }
-    
-    renderTopSellingItems(orders);
-    renderOrdersTable(orders);
-  } catch(e) {
-    console.error("Error rendering dashboard:", e);
   }
-}
 
-function renderTopSellingItems(orders) {
-  const container = document.getElementById('topSellingContainer');
-  if (!container) return;
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      renderRecentOrders();
+    });
+  }
 
-  let itemCounts = {};
-  let itemTotalSold = 0;
-
-  (orders || []).forEach(o => {
-    if (o && Array.isArray(o.items)) {
-      o.items.forEach(i => {
-        const name = i.name || 'Unknown Item';
-        const qty = i.quantity || 1;
-        itemCounts[name] = (itemCounts[name] || 0) + qty;
-        itemTotalSold += qty;
-      });
-    }
+  filterTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      filterTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      renderRecentOrders();
+    });
   });
 
-  const sorted = Object.entries(itemCounts).sort((a,b) => b[1] - a[1]);
-  if (sorted.length === 0) {
-    container.innerHTML = `<p style="color:var(--dash-muted); font-size:0.9rem;">No sales data yet.</p>`;
-    return;
+  // Listen for storage / order events
+  window.addEventListener('storage', () => {
+    renderDashboard();
+  });
+  window.addEventListener('inventoryUpdated', () => {
+    renderProductsTable();
+  });
+
+  renderDashboard();
+}
+
+function renderDashboard() {
+  const orders = (typeof PPUtils !== 'undefined' && PPUtils.getOrders) ? PPUtils.getOrders() : (JSON.parse(localStorage.getItem('pp_orders')) || []);
+  
+  // Stats
+  const statTotal = document.getElementById('statTotalOrders');
+  const statRev = document.getElementById('statRevenue');
+  const statSold = document.getElementById('statItemsSold');
+  const statPay = document.getElementById('statPaymentMethods');
+
+  let totalRev = 0;
+  let itemsSold = 0;
+  let payMethods = {};
+
+  orders.forEach(o => {
+    totalRev += (o.total || 0);
+    (o.items || []).forEach(it => {
+      itemsSold += (it.quantity || 1);
+    });
+    const method = o.paymentMethod || 'Online';
+    payMethods[method] = (payMethods[method] || 0) + 1;
+  });
+
+  if (statTotal) statTotal.textContent = orders.length;
+  if (statRev) statRev.textContent = `$${totalRev.toFixed(2)}`;
+  if (statSold) statSold.textContent = itemsSold;
+  if (statPay) {
+    const keys = Object.keys(payMethods);
+    statPay.textContent = keys.length > 0 ? `${keys[0]} (${payMethods[keys[0]]})` : 'Credit/Debit';
   }
 
-  container.innerHTML = sorted.slice(0, 5).map(([name, count]) => {
-    const percent = itemTotalSold > 0 ? Math.round((count / itemTotalSold) * 100) : 0;
-    return `
-      <div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:0.9rem;">
-          <strong style="color:#fff;">${name}</strong>
-          <span style="color:var(--dash-primary); font-weight:700;">${count} sold (${percent}%)</span>
-        </div>
-        <div style="background:var(--dash-card2); height:8px; border-radius:4px; overflow:hidden;">
-          <div style="background:var(--dash-primary); height:100%; width:${percent}%; transition:width 0.3s ease;"></div>
-        </div>
-      </div>
-    `;
-  }).join('');
+  renderRecentOrders();
+  renderTopSelling(orders);
 }
 
-function formatOrderItemsHtml(items) {
-  if (!items || !items.length) return '<span style="color:var(--dash-muted);">No items</span>';
-  return items.map(i => {
-    let addInsText = '';
-    if (i.addIns && i.addIns.length > 0) {
-      const names = i.addIns.map(a => typeof a === 'string' ? a : (a.name || a)).join(', ');
-      addInsText = `<div style="font-size:0.75rem; color:var(--dash-primary);">+ ${names}</div>`;
-    }
-    let noteText = '';
-    if (i.specialInstructions && i.specialInstructions.trim()) {
-      noteText = `<div style="font-size:0.75rem; color:var(--dash-yellow); font-style:italic;">📝 ${i.specialInstructions}</div>`;
-    }
-    return `
-      <div style="margin-bottom:0.35rem; line-height:1.3;">
-        <strong style="color:#fff;">${i.quantity}x ${i.name}</strong> <small style="color:var(--dash-muted);">(${i.size || 'single'}${i.flavor ? ' - ' + i.flavor : ''})</small>
-        ${addInsText}
-        ${noteText}
-      </div>
-    `;
-  }).join('');
-}
-
-function renderOrdersTable(orders) {
+function renderRecentOrders() {
   const tbody = document.getElementById('recentOrdersTable');
   if (!tbody) return;
-  
-  let filteredOrders = orders || [];
-  if (currentOrderFilter !== 'all') {
-    filteredOrders = (orders || []).filter(o => o && o.status === currentOrderFilter);
-  }
 
-  if (window.adminSearchQuery) {
-    const q = window.adminSearchQuery;
-    filteredOrders = filteredOrders.filter(o => {
-      if (!o) return false;
-      const id = (o.orderId || '').toLowerCase();
-      const name = (o.customerName || '').toLowerCase();
-      const email = (o.customerEmail || '').toLowerCase();
-      const phone = (o.customerPhone || '').toLowerCase();
-      return id.includes(q) || name.includes(q) || email.includes(q) || phone.includes(q);
-    });
-  }
+  const orders = (typeof PPUtils !== 'undefined' && PPUtils.getOrders) ? PPUtils.getOrders() : (JSON.parse(localStorage.getItem('pp_orders')) || []);
+  const search = (document.getElementById('adminOrderSearch')?.value || '').toLowerCase().trim();
+  const activeTab = document.querySelector('#ordersFilterTabs .filter-tab.active')?.dataset.filter || 'all';
 
-  filteredOrders = [...filteredOrders].sort((a,b) => new Date(b.timestamp || Date.now()) - new Date(a.timestamp || Date.now()));
-
-  if (filteredOrders.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="text-center" style="padding: 2.5rem; color:var(--dash-muted);">No orders found. Place an order on the menu page to test!</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = filteredOrders.map(o => `
-    <tr>
-      <td><strong style="color:var(--dash-blue);">#${(o.orderId || 'PP-000000').replace('PP-','')}</strong></td>
-      <td><strong style="color:#fff; font-size:0.95rem;">${o.customerName || 'Guest'}</strong><br><small style="color:var(--dash-muted);">${o.customerPhone || o.customerEmail || ''}</small></td>
-      <td>${formatOrderItemsHtml(o.items)}</td>
-      <td><span style="background:var(--dash-card2); color:#fff; padding:4px 10px; border-radius:6px; font-weight:600; font-size:0.8rem; border:1px solid var(--dash-border);">${o.paymentMethod || 'Credit Card 💳'}</span></td>
-      <td><strong style="color:var(--dash-primary); font-size:1rem;">${formatMoney(o.total || 0)}</strong></td>
-      <td><span style="color:#fff; font-weight:600;">${o.pickupTime || '12:00 PM'}</span></td>
-      <td>
-        <select style="background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border); padding:5px 8px; border-radius:6px; font-weight:600; font-size:0.8rem; cursor:pointer;" onchange="window.changeOrderStatus('${o.orderId}', this.value)">
-          <option value="pending" ${o.status==='pending'?'selected':''}>Pending ⏳</option>
-          <option value="confirmed" ${o.status==='confirmed'?'selected':''}>Confirmed 👍</option>
-          <option value="preparing" ${o.status==='preparing'?'selected':''}>Preparing 🍳</option>
-          <option value="ready" ${o.status==='ready'?'selected':''}>Ready ✨</option>
-          <option value="picked-up" ${o.status==='picked-up'?'selected':''}>Picked Up 🛍️</option>
-        </select>
-      </td>
-      <td>
-        <div style="display:flex; gap:6px;">
-          <button type="button" class="btn btn-sm btn-outline" style="padding:4px 10px; font-size:0.8rem; color:#fff; border-color:var(--dash-border); cursor:pointer;" onclick="window.printReceipt('${o.orderId}')">🖨️ Receipt</button>
-          <button type="button" class="btn btn-sm btn-outline" style="padding:4px 10px; font-size:0.8rem; color:var(--dash-red); border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.1); cursor:pointer;" onclick="window.deleteOrder('${o.orderId}')">🗑️ Delete</button>
-        </div>
-      </td>
-    </tr>
-  `).join('');
-}
-
-window.deleteOrder = function(orderId) {
-  if (!confirm(`Are you sure you want to delete order #${(orderId || '').replace('PP-','')}? This action cannot be undone.`)) {
-    return;
-  }
-
-  // Remove from localStorage
-  let orders = getLocalOrders();
-  orders = orders.filter(o => o && o.orderId !== orderId);
-  setLocalOrders(orders);
-
-  // Remove from current memory state
-  if (window.currentAdminOrders) {
-    window.currentAdminOrders = window.currentAdminOrders.filter(o => o && o.orderId !== orderId);
-  }
-
-  // Delete from Firebase Firestore
-  if (typeof firebase !== 'undefined' && firebase.firestore) {
-    try {
-      firebase.firestore().collection('orders').doc(orderId).delete().catch(e => console.warn('Firestore delete notice:', e));
-    } catch(e) {}
-  }
-
-  renderDashboard();
-  renderCustomers();
-};
-
-window.changeOrderStatus = function(orderId, newStatus) {
-  if (typeof window.updateOrderStatusInFirebase === 'function') {
-    window.updateOrderStatusInFirebase(orderId, newStatus);
-  } else {
-    let orders = getLocalOrders();
-    const idx = orders.findIndex(o => o.orderId === orderId);
-    if (idx !== -1) {
-      orders[idx].status = newStatus;
-      setLocalOrders(orders);
+  let filtered = orders.slice().reverse().filter(o => {
+    if (activeTab !== 'all' && o.status !== activeTab) return false;
+    if (search) {
+      const matchId = (o.orderId || '').toLowerCase().includes(search);
+      const matchName = (o.customerName || '').toLowerCase().includes(search);
+      const matchEmail = (o.customerEmail || '').toLowerCase().includes(search);
+      return matchId || matchName || matchEmail;
     }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--dash-muted);">No orders found.</td></tr>`;
+    return;
   }
-  renderDashboard();
-};
 
-// --- Menu Management ---
-function renderMenuTable() {
-  const tbody = document.getElementById('menuAdminTable');
-  if (!tbody) return;
-  
-  let overrides = {};
-  try {
-    overrides = (typeof PPUtils !== 'undefined' && PPUtils.getStorage) ? PPUtils.getStorage('pp_menu_overrides') : JSON.parse(localStorage.getItem('pp_menu_overrides'));
-  } catch(e) {}
-  overrides = overrides || {};
-
-  const items = (typeof getMenuItems === 'function') ? getMenuItems() : (window.MENU_ITEMS || []);
-  
   let html = '';
-  items.forEach(item => {
-    const isSoldOut = overrides[item.id]?.soldOut || item.soldOut || false;
-    const firstPrice = item.prices ? (item.prices.single || item.prices.medium || item.prices.small || 0) : 0;
+  filtered.forEach(o => {
+    const statusClass = `status-${o.status || 'pending'}`;
+    const itemsSummary = (o.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ');
+
     html += `
       <tr>
-        <td style="font-size: 1.5rem;">${item.emoji}</td>
-        <td><strong style="color:#fff;">${item.name}</strong><br><small style="color:var(--dash-muted);">${item.description || ''}</small></td>
-        <td><span style="background:var(--dash-card2); padding:3px 8px; border-radius:4px; font-size:0.8rem; color:var(--dash-blue);">${item.categoryLabel || item.category}</span></td>
-        <td><strong style="color:var(--dash-primary);">${formatMoney(firstPrice)}</strong></td>
+        <td><strong style="color:var(--dash-blue); font-family:monospace;">#${(o.orderId || '').replace('PP-', '')}</strong></td>
+        <td><strong>${o.customerName || 'Customer'}</strong><br><small style="color:var(--dash-muted);">${o.customerEmail || ''}</small></td>
+        <td><div style="max-width:260px; font-size:0.85rem; color:#fff;">${itemsSummary}</div></td>
+        <td><span style="font-size:0.8rem; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px;">${o.paymentMethod || 'Credit Card'}</span></td>
+        <td><strong style="color:var(--dash-green); font-size:0.95rem;">$${(o.total || 0).toFixed(2)}</strong></td>
+        <td><span style="font-size:0.85rem; color:var(--dash-muted);">${o.pickupTime || 'Standard'}</span></td>
+        <td><span class="status-badge ${statusClass}">${o.status || 'pending'}</span></td>
         <td>
-          <label class="toggle-switch">
-            <input type="checkbox" onchange="window.toggleSoldOut('${item.id}', this.checked)" ${isSoldOut ? 'checked' : ''}>
-            <span class="toggle-slider"></span>
-          </label>
-        </td>
-        <td>
-          <button type="button" class="btn btn-sm btn-outline" style="padding:4px 10px; font-size:0.8rem; color:#fff; border-color:var(--dash-border);" onclick="alert('Status updated!')">Save</button>
+          <select class="select" style="padding:4px 8px; font-size:0.8rem; background:var(--dash-card2); color:#fff; border:1px solid var(--dash-border);" onchange="updateOrderStatus('${o.orderId}', this.value)">
+            <option value="pending" ${o.status === 'pending' ? 'selected' : ''}>Pending</option>
+            <option value="confirmed" ${o.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
+            <option value="preparing" ${o.status === 'preparing' ? 'selected' : ''}>Preparing</option>
+            <option value="ready" ${o.status === 'ready' ? 'selected' : ''}>Ready</option>
+            <option value="picked-up" ${o.status === 'picked-up' ? 'selected' : ''}>Completed</option>
+          </select>
         </td>
       </tr>
     `;
   });
+
   tbody.innerHTML = html;
 }
 
-window.toggleSoldOut = function(itemId, checked) {
-  let overrides = {};
-  try {
-    overrides = (typeof PPUtils !== 'undefined' && PPUtils.getStorage) ? PPUtils.getStorage('pp_menu_overrides') : JSON.parse(localStorage.getItem('pp_menu_overrides'));
-  } catch(e) {}
-  overrides = overrides || {};
+window.updateOrderStatus = function(orderId, newStatus) {
+  let orders = (typeof PPUtils !== 'undefined' && PPUtils.getOrders) ? PPUtils.getOrders() : (JSON.parse(localStorage.getItem('pp_orders')) || []);
+  const idx = orders.findIndex(o => o.orderId === orderId);
+  if (idx > -1) {
+    orders[idx].status = newStatus;
+    if (typeof PPUtils !== 'undefined' && PPUtils.setStorage) {
+      PPUtils.setStorage('pp_orders', orders);
+    } else {
+      localStorage.setItem('pp_orders', JSON.stringify(orders));
+    }
+    if (typeof PPUtils !== 'undefined' && PPUtils.showToast) {
+      PPUtils.showToast(`Order ${orderId} updated to ${newStatus}`, 'info');
+    }
+    renderDashboard();
+  }
+};
 
-  if (!overrides[itemId]) overrides[itemId] = {};
-  overrides[itemId].soldOut = checked;
-  
-  if (typeof PPUtils !== 'undefined' && PPUtils.setStorage) {
-    PPUtils.setStorage('pp_menu_overrides', overrides);
+function renderTopSelling(orders) {
+  const container = document.getElementById('topSellingContainer');
+  if (!container) return;
+
+  const counts = {};
+  orders.forEach(o => {
+    (o.items || []).forEach(item => {
+      counts[item.name] = (counts[item.name] || 0) + (item.quantity || 1);
+    });
+  });
+
+  const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 5);
+  if (sorted.length === 0) {
+    container.innerHTML = '<p style="color:var(--dash-muted); font-size:0.9rem;">No sales recorded yet.</p>';
+    return;
+  }
+
+  let html = '';
+  sorted.forEach(([name, qty]) => {
+    html += `
+      <div style="display:flex; justify-content:space-between; align-items:center; background:var(--dash-card2); padding:10px 14px; border-radius:8px;">
+        <span style="font-weight:600; color:#fff;">${name}</span>
+        <span style="background:var(--dash-primary); color:#fff; padding:2px 8px; border-radius:12px; font-weight:700; font-size:0.8rem;">${qty} sold</span>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+// --- Product & Inventory Manager ---
+let currentUploadedImageDataUrl = '';
+
+function initProductManager() {
+  const btnOpen = document.getElementById('btnOpenAddProduct');
+  const btnClose = document.getElementById('btnCloseProductModal');
+  const btnCancel = document.getElementById('btnCancelProductModal');
+  const modal = document.getElementById('productModal');
+  const form = document.getElementById('productForm');
+
+  const fileInput = document.getElementById('prodImageFile');
+  const urlInput = document.getElementById('prodImageUrl');
+  const imgPreview = document.getElementById('imagePreview');
+  const placeholder = document.getElementById('imagePreviewPlaceholder');
+  const btnRemoveImage = document.getElementById('btnRemoveImage');
+
+  if (btnOpen) {
+    btnOpen.addEventListener('click', () => {
+      openProductModal();
+    });
+  }
+
+  if (btnClose) btnClose.addEventListener('click', closeProductModal);
+  if (btnCancel) btnCancel.addEventListener('click', closeProductModal);
+
+  // File Upload Handling
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        if (file.size > 2 * 1024 * 1024) {
+          alert('Please choose an image under 2MB.');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          currentUploadedImageDataUrl = event.target.result;
+          displayImagePreview(currentUploadedImageDataUrl);
+          if (urlInput) urlInput.value = '';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  // URL Input Handling
+  if (urlInput) {
+    urlInput.addEventListener('input', (e) => {
+      const url = e.target.value.trim();
+      if (url) {
+        currentUploadedImageDataUrl = url;
+        displayImagePreview(url);
+      } else {
+        resetImagePreview();
+      }
+    });
+  }
+
+  if (btnRemoveImage) {
+    btnRemoveImage.addEventListener('click', () => {
+      resetImagePreview();
+    });
+  }
+
+  // Save Product Form Submission
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const editId = document.getElementById('prodEditId').value;
+      const name = document.getElementById('prodName').value.trim();
+      const category = document.getElementById('prodCategory').value;
+      const price = parseFloat(document.getElementById('prodPrice').value) || 0;
+      const stock = parseInt(document.getElementById('prodStock').value, 10) || 0;
+      const desc = document.getElementById('prodDesc').value.trim();
+      const flavorsStr = document.getElementById('prodFlavors').value.trim();
+      const emoji = document.getElementById('prodEmoji').value.trim() || '✨';
+      const featured = document.getElementById('prodFeatured').checked;
+      const popular = document.getElementById('prodPopular').checked;
+
+      const categoryLabels = {
+        'fidgets': 'Fidgets & Squishies',
+        '3d-prints': '3D Prints & Models',
+        'novelties': 'Novelties & Desk Toys',
+        'sweets': 'Sweet Treats'
+      };
+
+      const flavors = flavorsStr ? flavorsStr.split(',').map(s => s.trim()).filter(Boolean) : null;
+
+      const id = editId || ('item_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 4));
+
+      const product = {
+        id: id,
+        name: name,
+        category: category,
+        categoryLabel: categoryLabels[category] || category,
+        type: category,
+        subtype: null,
+        description: desc,
+        prices: { single: price },
+        stock: stock,
+        soldOut: stock <= 0,
+        flavors: flavors,
+        image: currentUploadedImageDataUrl || '',
+        emoji: emoji,
+        gradient: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
+        rating: 5.0,
+        reviews: 1,
+        featured: featured,
+        popular: popular
+      };
+
+      if (typeof PPUtils !== 'undefined' && PPUtils.saveProduct) {
+        PPUtils.saveProduct(product);
+        PPUtils.showToast(editId ? `Updated ${name}!` : `Added ${name} to store!`, 'success');
+      }
+
+      closeProductModal();
+      renderProductsTable();
+    });
+  }
+
+  renderProductsTable();
+}
+
+function displayImagePreview(src) {
+  const imgPreview = document.getElementById('imagePreview');
+  const placeholder = document.getElementById('imagePreviewPlaceholder');
+  const btnRemove = document.getElementById('btnRemoveImage');
+
+  if (imgPreview && placeholder) {
+    imgPreview.src = src;
+    imgPreview.style.display = 'block';
+    placeholder.style.display = 'none';
+    if (btnRemove) btnRemove.style.display = 'inline-block';
+  }
+}
+
+function resetImagePreview() {
+  currentUploadedImageDataUrl = '';
+  const imgPreview = document.getElementById('imagePreview');
+  const placeholder = document.getElementById('imagePreviewPlaceholder');
+  const btnRemove = document.getElementById('btnRemoveImage');
+  const fileInput = document.getElementById('prodImageFile');
+  const urlInput = document.getElementById('prodImageUrl');
+
+  if (imgPreview && placeholder) {
+    imgPreview.src = '';
+    imgPreview.style.display = 'none';
+    placeholder.style.display = 'block';
+    if (btnRemove) btnRemove.style.display = 'none';
+    if (fileInput) fileInput.value = '';
+    if (urlInput) urlInput.value = '';
+  }
+}
+
+function openProductModal(item = null) {
+  const modal = document.getElementById('productModal');
+  const modalTitle = document.getElementById('modalProductTitle');
+  if (!modal) return;
+
+  resetImagePreview();
+
+  if (item) {
+    modalTitle.textContent = '✏️ Edit Product';
+    document.getElementById('prodEditId').value = item.id;
+    document.getElementById('prodName').value = item.name || '';
+    document.getElementById('prodCategory').value = item.category || 'fidgets';
+    const priceVal = item.prices ? (item.prices.single || item.prices.medium || item.prices.small || 0) : 0;
+    document.getElementById('prodPrice').value = priceVal;
+    document.getElementById('prodStock').value = (item.stock !== undefined) ? item.stock : 1;
+    document.getElementById('prodDesc').value = item.description || '';
+    document.getElementById('prodFlavors').value = item.flavors ? item.flavors.join(', ') : '';
+    document.getElementById('prodEmoji').value = item.emoji || '✨';
+    document.getElementById('prodFeatured').checked = !!item.featured;
+    document.getElementById('prodPopular').checked = !!item.popular;
+
+    if (item.image) {
+      currentUploadedImageDataUrl = item.image;
+      displayImagePreview(item.image);
+    }
   } else {
-    localStorage.setItem('pp_menu_overrides', JSON.stringify(overrides));
+    modalTitle.textContent = '➕ Add New Product';
+    document.getElementById('productForm').reset();
+    document.getElementById('prodEditId').value = '';
+    document.getElementById('prodStock').value = 1;
+    document.getElementById('prodPrice').value = 5.00;
+  }
+
+  modal.style.display = 'flex';
+}
+
+function closeProductModal() {
+  const modal = document.getElementById('productModal');
+  if (modal) modal.style.display = 'none';
+  resetImagePreview();
+}
+
+// --- Render Products Table ---
+function renderProductsTable() {
+  const tbody = document.getElementById('menuAdminTable');
+  if (!tbody) return;
+
+  const items = (typeof PPUtils !== 'undefined' && PPUtils.getMenuItems) ? PPUtils.getMenuItems() : (window.MENU_ITEMS || []);
+
+  if (items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--dash-muted);">No products found in store.</td></tr>';
+    return;
+  }
+
+  let html = '';
+  items.forEach(item => {
+    const stock = (item.stock !== undefined) ? parseInt(item.stock, 10) : 1;
+    const isSoldOut = (stock <= 0) || item.soldOut;
+    const price = item.prices ? (item.prices.single || item.prices.medium || item.prices.small || 0) : 0;
+
+    let stockBadgeHtml = '';
+    if (stock <= 0) {
+      stockBadgeHtml = '<span class="stock-badge out-of-stock">❌ Out of Stock</span>';
+    } else if (stock === 1) {
+      stockBadgeHtml = '<span class="stock-badge low-stock">⚠️ Only 1 Left</span>';
+    } else if (stock <= 3) {
+      stockBadgeHtml = `<span class="stock-badge low-stock">⚡ Low Stock (${stock})</span>`;
+    } else {
+      stockBadgeHtml = `<span class="stock-badge in-stock">✅ In Stock (${stock})</span>`;
+    }
+
+    let thumbHtml = '';
+    if (item.image) {
+      thumbHtml = `<div class="product-thumb-box"><img src="${item.image}" alt="${item.name}" onerror="this.parentElement.innerHTML='<span style=\'font-size:1.5rem;\'>${item.emoji || '📦'}</span>';"></div>`;
+    } else {
+      thumbHtml = `<div class="product-thumb-box" style="background:${item.gradient || 'var(--dash-card2)'}">${item.emoji || '✨'}</div>`;
+    }
+
+    html += `
+      <tr>
+        <td>${thumbHtml}</td>
+        <td>
+          <strong style="color:#fff; font-size:0.95rem;">${item.name}</strong><br>
+          <small style="color:var(--dash-muted); display:block; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${item.description || 'No description'}</small>
+        </td>
+        <td><span style="background:var(--dash-card2); padding:3px 8px; border-radius:6px; font-size:0.8rem; color:var(--dash-blue); font-weight:600;">${item.categoryLabel || item.category}</span></td>
+        <td><strong style="color:var(--dash-green); font-size:1rem;">$${price.toFixed(2)}</strong></td>
+        <td>
+          <div class="stock-stepper-inline">
+            <button type="button" class="stock-btn-step" onclick="stepStock('${item.id}', -1)" title="Decrease Stock">-</button>
+            <input type="number" class="stock-input-field" min="0" value="${stock}" onchange="changeStockExact('${item.id}', this.value)">
+            <button type="button" class="stock-btn-step" onclick="stepStock('${item.id}', 1)" title="Increase Stock">+</button>
+          </div>
+        </td>
+        <td>
+          ${stockBadgeHtml}
+        </td>
+        <td style="text-align:right;">
+          <div style="display:inline-flex; gap:6px;">
+            <button type="button" class="btn btn-sm btn-outline" style="padding:5px 10px; font-size:0.8rem; color:#fff;" onclick="editProductPrompt('${item.id}')">✏️ Edit</button>
+            <button type="button" class="btn btn-sm btn-outline" style="padding:5px 8px; font-size:0.8rem; color:var(--dash-red); border-color:rgba(239,68,68,0.3);" onclick="deleteProductPrompt('${item.id}', '${item.name}')">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+
+  tbody.innerHTML = html;
+}
+
+// Global Stock Adjusters
+window.stepStock = function(itemId, delta) {
+  const items = (typeof PPUtils !== 'undefined' && PPUtils.getMenuItems) ? PPUtils.getMenuItems() : (window.MENU_ITEMS || []);
+  const item = items.find(i => i.id === itemId);
+  const currentStock = item ? (item.stock ?? 1) : 1;
+  const nextStock = Math.max(0, currentStock + delta);
+  
+  if (typeof PPUtils !== 'undefined' && PPUtils.updateProductStock) {
+    PPUtils.updateProductStock(itemId, nextStock);
+    PPUtils.showToast(`Stock for ${item?.name || 'Item'} set to ${nextStock}`, 'info');
+  }
+  renderProductsTable();
+};
+
+window.changeStockExact = function(itemId, value) {
+  const num = Math.max(0, parseInt(value, 10) || 0);
+  if (typeof PPUtils !== 'undefined' && PPUtils.updateProductStock) {
+    PPUtils.updateProductStock(itemId, num);
+    PPUtils.showToast(`Stock updated to ${num}`, 'info');
+  }
+  renderProductsTable();
+};
+
+window.editProductPrompt = function(itemId) {
+  const items = (typeof PPUtils !== 'undefined' && PPUtils.getMenuItems) ? PPUtils.getMenuItems() : (window.MENU_ITEMS || []);
+  const item = items.find(i => i.id === itemId);
+  if (item) {
+    openProductModal(item);
+  }
+};
+
+window.deleteProductPrompt = function(itemId, name) {
+  if (confirm(`Are you sure you want to delete "${name}" from your store?`)) {
+    if (typeof PPUtils !== 'undefined' && PPUtils.deleteProduct) {
+      PPUtils.deleteProduct(itemId);
+      PPUtils.showToast(`Deleted ${name}`, 'error');
+    }
+    renderProductsTable();
   }
 };
 
 // --- Customers ---
 function renderCustomers() {
-  const orders = window.currentAdminOrders || getLocalOrders();
-  renderCustomersWithOrders(orders);
-}
+  const orders = (typeof PPUtils !== 'undefined' && PPUtils.getOrders) ? PPUtils.getOrders() : (JSON.parse(localStorage.getItem('pp_orders')) || []);
+  const tbody = document.getElementById('customersTable');
+  if (!tbody) return;
 
-function renderCustomersWithOrders(orders) {
-  let customersMap = {};
-  
-  (orders || []).forEach(o => {
-    if (!o) return;
+  let map = {};
+  orders.forEach(o => {
     const key = o.customerEmail || o.customerName || 'Guest';
-    if (!customersMap[key]) {
-      customersMap[key] = {
+    if (!map[key]) {
+      map[key] = {
         name: o.customerName || 'Guest',
         email: o.customerEmail || '-',
         phone: o.customerPhone || '-',
@@ -565,166 +600,133 @@ function renderCustomersWithOrders(orders) {
         totalSpent: 0
       };
     }
-    customersMap[key].ordersCount++;
-    customersMap[key].totalSpent += (o.total || 0);
+    map[key].ordersCount++;
+    map[key].totalSpent += (o.total || 0);
   });
-  
-  const tbody = document.getElementById('customersTable');
-  if (!tbody) return;
-  
-  const list = Object.values(customersMap).sort((a,b) => b.totalSpent - a.totalSpent);
+
+  const list = Object.values(map);
   if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding: 2.5rem; color:var(--dash-muted);">No customers found yet.</td></tr>`;
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:2rem; color:var(--dash-muted);">No customers yet.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = list.map(c => `
-    <tr>
-      <td><strong style="color:#fff;">${c.name}</strong></td>
-      <td style="color:var(--dash-muted);">${c.email}</td>
-      <td style="color:var(--dash-muted);">${c.phone}</td>
-      <td><strong style="color:#fff;">${c.ordersCount}</strong></td>
-      <td><strong style="color:var(--dash-primary);">${formatMoney(c.totalSpent)}</strong></td>
-    </tr>
-  `).join('');
+  let html = '';
+  list.forEach(c => {
+    html += `
+      <tr>
+        <td><strong>${c.name}</strong></td>
+        <td>${c.email}</td>
+        <td>${c.phone}</td>
+        <td><span style="background:var(--dash-card2); padding:2px 8px; border-radius:4px; font-weight:700;">${c.ordersCount}</span></td>
+        <td><strong style="color:var(--dash-green);">$${c.totalSpent.toFixed(2)}</strong></td>
+      </tr>
+    `;
+  });
+  tbody.innerHTML = html;
 }
 
-function getPromoCodes() {
-  try {
-    const raw = localStorage.getItem('pp_promo_codes');
-    return raw ? JSON.parse(raw) : [
-      { code: 'PICNIC10', discount: 10 },
-      { code: 'SUMMER20', discount: 20 },
-      { code: 'FIRSTORDER', discount: 15 },
-      { code: 'TEST99', discount: 99.99 }
-    ];
-  } catch(e) {
-    return [
-      { code: 'PICNIC10', discount: 10 },
-      { code: 'SUMMER20', discount: 20 },
-      { code: 'FIRSTORDER', discount: 15 },
-      { code: 'TEST99', discount: 99.99 }
-    ];
-  }
-}
-
-function setPromoCodes(codes) {
-  try {
-    localStorage.setItem('pp_promo_codes', JSON.stringify(codes));
-  } catch(e) {}
-}
-
-function renderPromoCodesTable() {
+// --- Promo Codes & Settings ---
+function initPromoCodes() {
+  const form = document.getElementById('addPromoForm');
   const tbody = document.getElementById('promoCodesTable');
-  if (!tbody) return;
-  const codes = getPromoCodes();
-  if (codes.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="3" style="color:var(--dash-muted); padding:1rem; text-align:center;">No promo codes created yet.</td></tr>`;
-    return;
+
+  function renderPromoCodes() {
+    if (!tbody) return;
+    const defaultCodes = { 'SUGAR10': 0.10, 'PRINT20': 0.20, 'FIRSTORDER': 0.15 };
+    const customCodes = (typeof PPUtils !== 'undefined' && PPUtils.getStorage) ? (PPUtils.getStorage('pp_custom_promos') || {}) : {};
+    const all = { ...defaultCodes, ...customCodes };
+
+    let html = '';
+    Object.entries(all).forEach(([code, rate]) => {
+      html += `
+        <tr>
+          <td><strong style="color:var(--dash-blue); font-family:monospace; font-size:1rem;">${code}</strong></td>
+          <td><span style="color:var(--dash-green); font-weight:700;">${Math.round(rate * 100)}% OFF</span></td>
+          <td>
+            ${customCodes[code] ? `<button type="button" class="btn btn-sm btn-ghost" style="color:var(--dash-red);" onclick="deletePromoCode('${code}')">Delete</button>` : '<small style="color:var(--dash-muted);">Default</small>'}
+          </td>
+        </tr>
+      `;
+    });
+    tbody.innerHTML = html;
   }
-  tbody.innerHTML = codes.map(c => `
-    <tr>
-      <td><strong style="color:var(--dash-primary); font-size:0.95rem;">${c.code}</strong></td>
-      <td><span style="background:var(--dash-card2); color:#fff; padding:3px 8px; border-radius:4px; font-weight:700;">${c.discount}% OFF</span></td>
-      <td>
-        <button type="button" class="btn btn-sm btn-outline" style="padding:3px 8px; font-size:0.8rem; color:var(--dash-red); border-color:rgba(239,68,68,0.3);" onclick="window.deletePromoCode('${c.code}')">🗑️ Remove</button>
-      </td>
-    </tr>
-  `).join('');
+
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const code = document.getElementById('promoCodeInput').value.trim().toUpperCase();
+      const discount = parseInt(document.getElementById('promoDiscountInput').value, 10);
+      if (code && discount > 0) {
+        let customCodes = (typeof PPUtils !== 'undefined' && PPUtils.getStorage) ? (PPUtils.getStorage('pp_custom_promos') || {}) : {};
+        customCodes[code] = discount / 100;
+        if (typeof PPUtils !== 'undefined' && PPUtils.setStorage) {
+          PPUtils.setStorage('pp_custom_promos', customCodes);
+          PPUtils.showToast(`Created promo code ${code}!`, 'success');
+        }
+        form.reset();
+        renderPromoCodes();
+      }
+    });
+  }
+
+  window.deletePromoCode = function(code) {
+    let customCodes = (typeof PPUtils !== 'undefined' && PPUtils.getStorage) ? (PPUtils.getStorage('pp_custom_promos') || {}) : {};
+    delete customCodes[code];
+    if (typeof PPUtils !== 'undefined' && PPUtils.setStorage) {
+      PPUtils.setStorage('pp_custom_promos', customCodes);
+      PPUtils.showToast(`Deleted promo code ${code}`, 'info');
+    }
+    renderPromoCodes();
+  };
+
+  renderPromoCodes();
 }
 
-window.deletePromoCode = function(code) {
-  let codes = getPromoCodes().filter(c => c.code !== code);
-  setPromoCodes(codes);
-  renderPromoCodesTable();
-};
-
-// --- Settings ---
-function setupSettings() {
-  renderPromoCodesTable();
-
+function initSettings() {
   const btnExport = document.getElementById('btnExportCSV');
+  const btnResetInv = document.getElementById('btnResetInventory');
   const btnClear = document.getElementById('btnClearData');
 
-  if (btnExport && !btnExport.dataset.bound) {
-    btnExport.dataset.bound = "true";
+  if (btnExport) {
     btnExport.addEventListener('click', () => {
-      const orders = getLocalOrders();
-      if (orders.length === 0) return alert("No orders to export.");
-      
-      const headers = ['Order ID', 'Date', 'Customer Name', 'Email', 'Payment Method', 'Total', 'Status'];
-      const rows = orders.map(o => [
-        o.orderId, 
-        new Date(o.timestamp).toLocaleString(), 
-        `"${o.customerName || 'Guest'}"`, 
-        o.customerEmail || '', 
-        `"${o.paymentMethod || 'Credit Card'}"`, 
-        (o.total || 0).toFixed(2), 
-        o.status
-      ]);
-      
-      const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-      
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a");
-      if (link.download !== undefined) {
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", `picnic_orders_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      const orders = (typeof PPUtils !== 'undefined' && PPUtils.getOrders) ? PPUtils.getOrders() : [];
+      let csv = 'Order ID,Customer,Email,Total,Status,Items\n';
+      orders.forEach(o => {
+        const items = (o.items || []).map(i => `${i.quantity}x ${i.name}`).join('; ');
+        csv += `"${o.orderId}","${o.customerName || ''}","${o.customerEmail || ''}","${o.total || 0}","${o.status || ''}","${items}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `the_sugar_printer_orders_${Date.now()}.csv`;
+      a.click();
+    });
+  }
+
+  if (btnResetInv) {
+    btnResetInv.addEventListener('click', () => {
+      if (confirm('Reset store inventory back to initial default items (1 Mini Purple Mattress, 1 NeeDoh, 1 NeeDoh Nice Berg)?')) {
+        localStorage.removeItem('pp_menu_overrides');
+        localStorage.removeItem('pp_custom_items');
+        localStorage.removeItem('pp_deleted_items');
+        if (typeof PPUtils !== 'undefined' && PPUtils.showToast) {
+          PPUtils.showToast('Inventory reset to initial defaults (1 in stock each)!', 'success');
+        }
+        renderProductsTable();
       }
     });
   }
-  
-  if (btnClear && !btnClear.dataset.bound) {
-    btnClear.dataset.bound = "true";
+
+  if (btnClear) {
     btnClear.addEventListener('click', () => {
-      if(confirm("WARNING: This will clear all orders and settings. Are you sure?")) {
-        const keys = ['pp_orders', 'pp_user', 'pp_cart', 'pp_menu_overrides', 'pp_promo_codes'];
-        keys.forEach(k => localStorage.removeItem(k));
-        alert("All data cleared. Reloading...");
-        window.location.reload();
+      if (confirm('Clear all orders history?')) {
+        localStorage.removeItem('pp_orders');
+        renderDashboard();
+        if (typeof PPUtils !== 'undefined' && PPUtils.showToast) {
+          PPUtils.showToast('Orders history cleared', 'info');
+        }
       }
     });
   }
 }
-
-// Printable Receipt
-window.printReceipt = function(orderId) {
-  const orders = getLocalOrders();
-  const order = orders.find(o => o.orderId === orderId);
-  if (!order) return;
-  
-  let printWin = window.open('', '_blank');
-  const itemsHtml = (order.items || []).map(i => `
-    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-      <span>${i.quantity}x ${i.name} (${i.size || 'single'}${i.flavor ? ' - ' + i.flavor : ''})</span>
-      <span>$${((i.unitPrice || 0) * (i.quantity || 1)).toFixed(2)}</span>
-    </div>
-  `).join('');
-
-  printWin.document.write(`
-    <html>
-    <head><title>Receipt #${order.orderId}</title></head>
-    <body style="font-family:monospace; padding:20px; width:300px;">
-      <h2 style="text-align:center; margin-bottom:4px;">Picnic Paradise</h2>
-      <p style="text-align:center; margin-top:0;">Order #${order.orderId}</p>
-      <hr/>
-      <p><strong>Customer:</strong> ${order.customerName || 'Guest'}</p>
-      <p><strong>Pickup Time:</strong> ${order.pickupTime || '12:00 PM'}</p>
-      <p><strong>Payment:</strong> ${order.paymentMethod || 'Credit Card'}</p>
-      <hr/>
-      ${itemsHtml}
-      <hr/>
-      <p style="text-align:right;"><strong>Total Paid: $${(order.total || 0).toFixed(2)}</strong></p>
-    </body>
-    </html>
-  `);
-  printWin.document.close();
-  printWin.focus();
-  printWin.print();
-  printWin.close();
-};

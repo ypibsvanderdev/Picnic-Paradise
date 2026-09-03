@@ -22,12 +22,12 @@ body {
 /* Custom Properties */
 :root {
   /* Primary palette */
-  --pp-primary: #4ECDC4;
-  --pp-primary-dark: #3BA99F;
-  --pp-primary-light: #7EDDD6;
-  --pp-secondary: #FFE66D;
+  --pp-primary: #8b5cf6;
+  --pp-primary-dark: #7c3aed;
+  --pp-primary-light: #ddd6fe;
+  --pp-secondary: #06b6d4;
   --pp-secondary-dark: #E6CF5C;
-  --pp-accent: #FF6B6B;
+  --pp-accent: #ec4899;
   --pp-accent-dark: #E05555;
   --pp-green: #95E872;
   --pp-green-dark: #7BC95D;
@@ -35,8 +35,8 @@ body {
   --pp-orange: #FFA94D;
 
   /* Surfaces */
-  --pp-bg: #FFF8F0;
-  --pp-bg-alt: #FFF0E0;
+  --pp-bg: #fdfcff;
+  --pp-bg-alt: #f5f3ff;
   --pp-surface: #FFFFFF;
   --pp-text: #2D3436;
   --pp-text-secondary: #636E72;
@@ -55,7 +55,7 @@ body {
 
   /* Navbar */
   --pp-navbar-height: 70px;
-  --pp-navbar-bg: rgba(255,248,240,0.85);
+  --pp-navbar-bg: rgba(253, 252, 255, 0.9);
   --pp-navbar-blur: 20px;
 }
 

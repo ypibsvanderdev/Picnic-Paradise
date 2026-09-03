@@ -1,0 +1,12 @@
+{
+  "hosting": {
+    "site": "the-sugar-printer",
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}
