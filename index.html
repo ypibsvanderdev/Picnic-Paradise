@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Sugar Printer | 3D Prints, Fidgets & Novelties</title>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://js.stripe.com/v3/"></script>
   <style>
     :root {
       --primary: #8b5cf6;
@@ -58,6 +57,7 @@
     }
     .order-btn:hover:not(:disabled) { transform:scale(1.07); box-shadow:0 6px 20px rgba(139,92,246,0.5); }
     .order-btn:disabled { background:#ddd; color:#999; cursor:not-allowed; box-shadow:none; }
+    
     .how-it-works { background:white; border-radius:var(--radius); padding:36px; box-shadow:var(--shadow); margin:40px 0; }
     .steps { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:24px; margin-top:24px; }
     .step { text-align:center; padding:20px 10px; }
@@ -75,12 +75,13 @@
     .modal-close { background:rgba(255,255,255,0.25); border:none; color:white; width:36px; height:36px; border-radius:50%; font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; }
     .modal-close:hover { background:rgba(255,255,255,0.4); }
     .modal-body { padding:28px; }
-    .modal-product-preview { display:flex; align-items:center; gap:16px; background:#f5f0ff; border-radius:16px; padding:14px; margin-bottom:24px; }
+    .modal-product-preview { display:flex; align-items:center; gap:16px; background:#f5f0ff; border-radius:16px; padding:14px; margin-bottom:20px; }
     .modal-product-preview img { width:64px; height:64px; border-radius:12px; object-fit:cover; }
     .modal-product-preview .preview-emoji { width:64px; height:64px; border-radius:12px; background:linear-gradient(135deg,#ede9fe,#ddd6fe); display:flex; align-items:center; justify-content:center; font-size:2rem; }
     .modal-product-preview div strong { display:block; font-family:"Fredoka One",cursive; font-size:1.1rem; }
     .modal-product-preview div span { color:var(--primary); font-weight:800; font-size:1rem; }
-    .form-group { margin-bottom:18px; }
+    
+    .form-group { margin-bottom:16px; }
     .form-group label { display:block; font-weight:700; margin-bottom:6px; font-size:.95rem; color:var(--text); }
     .form-group label span { color:var(--primary); }
     .form-group input, .form-group textarea, .form-group select {
@@ -88,7 +89,8 @@
       font-family:"Nunito",sans-serif; font-size:1rem; outline:none; transition:border-color .2s;
     }
     .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color:var(--primary); }
-    .form-group textarea { resize:vertical; min-height:60px; }
+    .form-group textarea { resize:vertical; min-height:55px; }
+    
     .qty-input { display:flex; align-items:center; }
     .qty-btn { width:44px; height:44px; border:2px solid #e8e8e8; background:white; font-size:1.3rem; font-weight:800; cursor:pointer; transition:all .2s; color:var(--text); }
     .qty-btn:first-child { border-radius:14px 0 0 14px; }
@@ -96,29 +98,43 @@
     .qty-btn:hover { background:var(--primary); color:white; border-color:var(--primary); }
     .qty-input input { width:60px; text-align:center; border-left:none; border-right:none; border-radius:0; font-family:"Fredoka One",cursive; font-size:1.2rem; }
     
-    /* Payment Method Tabs */
-    .pay-methods { display:flex; gap:0; margin-bottom:18px; border-radius:14px; overflow:hidden; border:2px solid #e8e8e8; }
+    /* Payment Method Toggle */
+    .pay-methods { display:flex; gap:0; margin-bottom:16px; border-radius:14px; overflow:hidden; border:2px solid #e8e8e8; }
     .pay-method { flex:1; padding:12px; text-align:center; font-weight:800; font-size:.95rem; cursor:pointer; transition:all .2s; background:white; border:none; font-family:"Nunito",sans-serif; color:var(--muted); }
     .pay-method.active { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:white; }
     .pay-method:hover:not(.active) { background:#f5f0ff; color:var(--primary); }
 
-    .order-total { background:linear-gradient(135deg,#f5f0ff,#ede9fe); border-radius:14px; padding:16px 20px; margin:18px 0; display:flex; justify-content:space-between; align-items:center; }
+    /* Online Card Form Section */
+    .online-card-box {
+      background: #f8faff; border: 2px solid #e0e7ff; border-radius: 16px;
+      padding: 16px; margin-bottom: 16px; display: none;
+    }
+    .card-row { display: flex; gap: 10px; }
+
+    /* Last-Stock Cash Outbid Box */
+    .outbid-box {
+      background: #fffbeb; border: 2px dashed #f59e0b; border-radius: 16px;
+      padding: 16px; margin-bottom: 16px; display: none;
+    }
+
+    .order-total { background:linear-gradient(135deg,#f5f0ff,#ede9fe); border-radius:14px; padding:16px 20px; margin:16px 0; display:flex; justify-content:space-between; align-items:center; }
     .order-total span { font-weight:700; color:var(--muted); }
     .order-total strong { font-family:"Fredoka One",cursive; font-size:1.6rem; color:var(--primary); }
+    
     .submit-btn {
       width:100%; padding:16px; background:linear-gradient(135deg,var(--primary),var(--primary-dark));
-      color:white; border:none; border-radius:16px; font-family:"Fredoka One",cursive; font-size:1.3rem;
+      color:white; border:none; border-radius:16px; font-family:"Fredoka One",cursive; font-size:1.25rem;
       cursor:pointer; transition:transform .2s,box-shadow .2s; box-shadow:0 6px 20px rgba(139,92,246,0.4);
     }
     .submit-btn:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 10px 30px rgba(139,92,246,0.5); }
     .submit-btn:disabled { background:#ddd; color:#999; cursor:not-allowed; box-shadow:none; }
     
-    .success-screen { display:none; text-align:center; padding:40px 28px; }
+    .success-screen { display:none; text-align:center; padding:36px 24px; }
     .success-screen.active { display:block; }
-    .success-icon { font-size:5rem; animation:popIn .5s cubic-bezier(.34,1.56,.64,1); }
+    .success-icon { font-size:4.5rem; animation:popIn .5s cubic-bezier(.34,1.56,.64,1); }
     @keyframes popIn { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
-    .success-screen h2 { font-family:"Fredoka One",cursive; font-size:2rem; color:var(--accent); margin:16px 0 10px; }
-    .success-screen p { color:var(--muted); font-size:1rem; line-height:1.6; }
+    .success-screen h2 { font-family:"Fredoka One",cursive; font-size:1.8rem; color:var(--accent); margin:14px 0 8px; }
+    .success-screen p { color:var(--muted); font-size:1rem; line-height:1.5; }
     .order-id-badge { display:inline-block; background:#e8f8f5; color:var(--accent); font-weight:800; padding:6px 16px; border-radius:20px; margin:12px 0; font-size:.9rem; }
     
     .toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(100px); background:#2d2d2d; color:white; padding:14px 24px; border-radius:50px; font-weight:700; font-size:.95rem; z-index:9999; transition:transform .4s cubic-bezier(.34,1.56,.64,1); white-space:nowrap; }
@@ -129,7 +145,7 @@
     .loading-overlay.active { display:flex; }
     .spinner { width:50px; height:50px; border:5px solid #ddd6fe; border-top-color:var(--primary); border-radius:50%; animation:spin .8s linear infinite; }
     @keyframes spin { to{transform:rotate(360deg)} }
-    @media(max-width:500px){ .product-grid { grid-template-columns:1fr; } }
+    @media(max-width:500px){ .product-grid { grid-template-columns:1fr; } .card-row { flex-direction:column; } }
   </style>
 </head>
 <body>
@@ -156,9 +172,9 @@
     <h2 class="section-title" style="margin-top:0;">📋 How It Works</h2>
     <div class="steps">
       <div class="step"><span class="step-icon">🛒</span><h3>Pick Your Item</h3><p>Browse our collection of fidgets, prints &amp; novelties</p></div>
-      <div class="step"><span class="step-icon">📝</span><h3>Place Your Order</h3><p>Enter your name, phone &amp; select cash or online</p></div>
-      <div class="step"><span class="step-icon">📦</span><h3>We Prepare It</h3><p>We pack your order carefully</p></div>
-      <div class="step"><span class="step-icon">✅</span><h3>Pick Up / Meetup</h3><p>Grab your item at meetup!</p></div>
+      <div class="step"><span class="step-icon">📝</span><h3>Place Your Order</h3><p>Pay online to instantly claim stock, or choose cash</p></div>
+      <div class="step"><span class="step-icon">⚡</span><h3>Last-Stock Bidding</h3><p>For cash on the last item in stock, bid +$1.00 to win priority</p></div>
+      <div class="step"><span class="step-icon">✅</span><h3>Meetup &amp; Enjoy</h3><p>Admin confirms cash orders; online claims stock instantly</p></div>
     </div>
   </div>
 </main>
@@ -201,8 +217,44 @@
           <label>Payment Method <span>*</span></label>
           <div class="pay-methods">
             <button type="button" class="pay-method active" id="btnPayCash" onclick="selectPayMethod('cash')">💵 Pay in Cash</button>
-            <button type="button" class="pay-method" id="btnPayOnline" onclick="selectPayMethod('online')">💳 Pay Online</button>
+            <button type="button" class="pay-method" id="btnPayOnline" onclick="selectPayMethod('online')">💳 Pay Online (Instant Claim)</button>
           </div>
+        </div>
+
+        <!-- Online Card Details Box (Shown when Pay Online is selected) -->
+        <div class="online-card-box" id="onlineCardBox">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <strong style="color:var(--primary); font-size:0.95rem;">💳 Instant Online Card Payment</strong>
+            <span style="font-size:0.75rem; background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:10px; font-weight:800;">Locks Stock Immediately</span>
+          </div>
+          <div class="form-group" style="margin-bottom:10px;">
+            <label style="font-size:0.85rem;">Card Number</label>
+            <input type="text" id="onlineCardNumber" placeholder="4242 •••• •••• 4242" maxlength="19">
+          </div>
+          <div class="card-row">
+            <div class="form-group" style="flex:1; margin-bottom:0;">
+              <label style="font-size:0.85rem;">Expires</label>
+              <input type="text" id="onlineCardExp" placeholder="MM/YY" maxlength="5">
+            </div>
+            <div class="form-group" style="flex:1; margin-bottom:0;">
+              <label style="font-size:0.85rem;">CVC</label>
+              <input type="text" id="onlineCardCvc" placeholder="123" maxlength="4">
+            </div>
+          </div>
+        </div>
+
+        <!-- Last-Stock Outbid Option (Shown when Cash is selected & competing cash order exists on last item) -->
+        <div class="outbid-box" id="outbidBox">
+          <div style="font-weight: 800; color: #b45309; font-size: 0.95rem; margin-bottom: 4px;">
+            ⚡ Last 1 in Stock! Pending Cash Request Detected
+          </div>
+          <div style="font-size: 0.85rem; color: #78350f; line-height: 1.4; margin-bottom: 10px;">
+            Someone else also wants this last remaining unit with cash! You can pay an extra $1.00 to outbid them and claim priority with the admin.
+          </div>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 800; color: #92400e; font-size: 0.9rem;">
+            <input type="checkbox" id="outbidCheck" onchange="toggleOutbid()" style="width: 18px; height: 18px; accent-color: var(--primary);">
+            <span>Pay an extra $1.00 to have it other than the other person</span>
+          </label>
         </div>
 
         <div class="form-group">
@@ -214,13 +266,13 @@
           <span>Order Total:</span>
           <strong id="orderTotal">$0.00</strong>
         </div>
-        <button type="submit" class="submit-btn" id="submitBtn">🛒 Place Order (Pay in Cash)</button>
+        <button type="submit" class="submit-btn" id="submitBtn">🛒 Place Cash Order</button>
       </form>
     </div>
     <div class="success-screen" id="successScreen">
       <div class="success-icon">🎉</div>
-      <h2>Order Placed!</h2>
-      <p id="successMessage">Your order has been received. We'll have it ready for you soon!</p>
+      <h2 id="successTitle">Order Placed!</h2>
+      <p id="successMessage">Your order has been received.</p>
       <div class="order-id-badge" id="orderIdBadge"></div>
       <br>
       <button onclick="closeModal()" class="submit-btn" style="width:auto;padding:12px 32px;font-size:1rem;margin-top:16px;">Close</button>
@@ -245,8 +297,7 @@
   let selectedProduct = null;
   let quantity = 1;
   let paymentMethod = 'cash';
-
-  const STRIPE_PK = localStorage.getItem('pp_stripe_pk') || 'pk_live_51Tzmw4LXU4os5QyXVR72hFVpCQPyKW5tRbqXnlhuKwmaFlRlhmdHw8aGZzBVtmfO9OmRp4UrndaL2IXQHEXbEBqF00ix5aeQSG';
+  let isOutbidSelected = false;
 
   function getProducts() {
     const custom = JSON.parse(localStorage.getItem('pp_custom_items') || '[]');
@@ -259,6 +310,10 @@
       }
       return { ...p };
     });
+  }
+
+  function getOrders() {
+    return JSON.parse(localStorage.getItem('pp_orders') || '[]');
   }
 
   function renderProducts() {
@@ -310,8 +365,8 @@
     selectedProduct = products.find(p => p.id === productId);
     if (!selectedProduct) return;
     quantity = 1;
-    paymentMethod = 'cash';
-    selectPayMethod('cash');
+    isOutbidSelected = false;
+    document.getElementById('outbidCheck').checked = false;
 
     document.getElementById('qtyInput').value = 1;
     const hasImg = selectedProduct.image && selectedProduct.image.length > 0;
@@ -329,12 +384,14 @@
 
     document.getElementById('modalProductName').textContent = selectedProduct.name;
     document.getElementById('modalProductPrice').textContent = '$' + Number(selectedProduct.price).toFixed(2) + ' each';
-    updateTotal();
 
     document.getElementById('orderForm').reset();
     document.getElementById('qtyInput').value = 1;
     document.getElementById('successScreen').classList.remove('active');
     document.getElementById('modalBody').style.display = 'block';
+
+    selectPayMethod('cash'); // Default to cash at original price
+
     document.getElementById('modalOverlay').classList.add('active');
     document.body.style.overflow = 'hidden';
   };
@@ -356,6 +413,7 @@
       quantity++;
       document.getElementById('qtyInput').value = quantity;
       updateTotal();
+      checkOutbidEligibility();
     } else {
       showToast('Only ' + max + ' in stock!');
     }
@@ -366,31 +424,100 @@
       quantity--;
       document.getElementById('qtyInput').value = quantity;
       updateTotal();
+      checkOutbidEligibility();
     }
+  };
+
+  function checkOutbidEligibility() {
+    const outbidBox = document.getElementById('outbidBox');
+    if (!selectedProduct || paymentMethod !== 'cash') {
+      outbidBox.style.display = 'none';
+      return;
+    }
+
+    // Only for cash orders when stock is 1 (or was last in stock) and an existing cash order exists
+    const stock = (selectedProduct.stock !== undefined) ? parseInt(selectedProduct.stock, 10) : 1;
+    const orders = getOrders();
+    const existingPendingCashOrders = orders.filter(o => 
+      o.productId === selectedProduct.id && 
+      o.status === 'pending' && 
+      o.paymentMethod && o.paymentMethod.includes('Cash')
+    );
+
+    // If stock is 1 and someone already placed a pending cash order, show the outbid option!
+    if (stock <= 1 && existingPendingCashOrders.length > 0) {
+      outbidBox.style.display = 'block';
+    } else {
+      outbidBox.style.display = 'none';
+      isOutbidSelected = false;
+      document.getElementById('outbidCheck').checked = false;
+    }
+  }
+
+  window.toggleOutbid = function() {
+    isOutbidSelected = document.getElementById('outbidCheck').checked;
+    updateTotal();
   };
 
   function updateTotal() {
     if (!selectedProduct) return;
-    const total = selectedProduct.price * quantity;
-    document.getElementById('orderTotal').textContent = '$' + total.toFixed(2);
+    let baseTotal = selectedProduct.price * quantity;
+    if (paymentMethod === 'cash' && isOutbidSelected) {
+      baseTotal += 1.00; // Extra dollar to outbid other person
+    }
+    document.getElementById('orderTotal').textContent = '$' + baseTotal.toFixed(2);
+
+    const submitBtn = document.getElementById('submitBtn');
+    if (paymentMethod === 'cash') {
+      if (isOutbidSelected) {
+        submitBtn.textContent = '⚡ Place Cash Order (+$1.00 Outbid) - $' + baseTotal.toFixed(2);
+      } else {
+        submitBtn.textContent = '💵 Place Order with Cash - $' + baseTotal.toFixed(2);
+      }
+    } else {
+      submitBtn.textContent = '💳 Pay $' + baseTotal.toFixed(2) + ' Online (Locks Stock)';
+    }
   }
 
   window.selectPayMethod = function(method) {
     paymentMethod = method;
     const cashBtn = document.getElementById('btnPayCash');
     const onlineBtn = document.getElementById('btnPayOnline');
-    const submitBtn = document.getElementById('submitBtn');
+    const cardBox = document.getElementById('onlineCardBox');
+    const outbidBox = document.getElementById('outbidBox');
 
     if (method === 'cash') {
       cashBtn.classList.add('active');
       onlineBtn.classList.remove('active');
-      submitBtn.textContent = '🛒 Place Order (Pay in Cash)';
+      cardBox.style.display = 'none';
+      checkOutbidEligibility();
     } else {
       onlineBtn.classList.add('active');
       cashBtn.classList.remove('active');
-      submitBtn.textContent = '💳 Place Order & Pay Online';
+      cardBox.style.display = 'block';
+      outbidBox.style.display = 'none';
+      isOutbidSelected = false; // Online does NOT have the extra dollar bidding feature!
+      document.getElementById('outbidCheck').checked = false;
     }
+    updateTotal();
   };
+
+  // Card input auto-formatters
+  const cardInput = document.getElementById('onlineCardNumber');
+  if (cardInput) {
+    cardInput.addEventListener('input', function(e) {
+      let v = e.target.value.replace(/\D/g, '').substring(0, 16);
+      e.target.value = v.match(/.{1,4}/g)?.join(' ') || '';
+    });
+  }
+  const expInput = document.getElementById('onlineCardExp');
+  if (expInput) {
+    expInput.addEventListener('input', function(e) {
+      let v = e.target.value.replace(/\D/g, '').substring(0, 4);
+      if (v.length >= 3) e.target.value = v.substring(0, 2) + '/' + v.substring(2);
+      else e.target.value = v;
+    });
+  }
 
   document.getElementById('orderForm').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -411,91 +538,119 @@
 
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
-    btn.textContent = paymentMethod === 'cash' ? 'Placing order...' : 'Connecting to payment...';
 
     const orderId = 'SP-' + Date.now().toString().slice(-6);
-    const total = selectedProduct.price * quantity;
-    const order = {
-      orderId: orderId,
-      customerName: name,
-      customerPhone: phone,
-      productId: selectedProduct.id,
-      productName: selectedProduct.name,
-      productPrice: selectedProduct.price,
-      quantity: quantity,
-      total: total,
-      message: message,
-      paymentMethod: paymentMethod === 'cash' ? 'Cash on meetup' : 'Online (Stripe)',
-      status: paymentMethod === 'cash' ? 'pending' : 'unpaid',
-      timestamp: new Date().toISOString()
-    };
+    let total = selectedProduct.price * quantity;
 
-    // Save order locally
-    const orders = JSON.parse(localStorage.getItem('pp_orders') || '[]');
-    orders.push(order);
-    localStorage.setItem('pp_orders', JSON.stringify(orders));
+    // --- CASE 1: ONLINE PAYMENT ---
+    if (paymentMethod === 'online') {
+      const cardNum = document.getElementById('onlineCardNumber').value.replace(/\s/g, '');
+      const cardExp = document.getElementById('onlineCardExp').value.trim();
+      const cardCvc = document.getElementById('onlineCardCvc').value.trim();
 
-    // Decrement stock
-    const overrides = JSON.parse(localStorage.getItem('pp_menu_overrides') || '{}');
-    const current = overrides[selectedProduct.id] || {};
-    const curStock = (current.stock !== undefined) ? current.stock : selectedProduct.stock;
-    current.stock = Math.max(0, curStock - quantity);
-    overrides[selectedProduct.id] = current;
-    localStorage.setItem('pp_menu_overrides', JSON.stringify(overrides));
-    window.dispatchEvent(new Event('inventoryUpdated'));
+      if (!cardNum || cardNum.length < 12) {
+        showToast('Please enter a valid card number');
+        document.getElementById('onlineCardNumber').focus();
+        btn.disabled = false;
+        return;
+      }
+      if (!cardExp || cardExp.length < 4) {
+        showToast('Please enter MM/YY card expiry');
+        document.getElementById('onlineCardExp').focus();
+        btn.disabled = false;
+        return;
+      }
 
-    if (paymentMethod === 'cash') {
-      document.getElementById('modalBody').style.display = 'none';
-      document.getElementById('orderIdBadge').textContent = 'Order #' + orderId;
-      document.getElementById('successMessage').textContent = 'Your order has been received! Please bring cash ($' + total.toFixed(2) + ') when you meet up.';
-      document.getElementById('successScreen').classList.add('active');
-      btn.disabled = false;
-      btn.textContent = '🛒 Place Order (Pay in Cash)';
-      renderProducts();
+      btn.textContent = 'Processing Online Payment...';
+
+      // Online payment takes out stock IMMEDIATELY upon confirmed payment
+      setTimeout(function() {
+        const order = {
+          orderId: orderId,
+          customerName: name,
+          customerPhone: phone,
+          productId: selectedProduct.id,
+          productName: selectedProduct.name,
+          productPrice: selectedProduct.price,
+          quantity: quantity,
+          total: total,
+          message: message,
+          paymentMethod: 'Paid Online (Card •••• ' + cardNum.slice(-4) + ')',
+          status: 'confirmed',
+          stockDecremented: true,
+          timestamp: new Date().toISOString()
+        };
+
+        // Save order
+        const orders = getOrders();
+        orders.push(order);
+        localStorage.setItem('pp_orders', JSON.stringify(orders));
+
+        // DEDUCT STOCK IMMEDIATELY FOR ONLINE PAYMENT
+        const overrides = JSON.parse(localStorage.getItem('pp_menu_overrides') || '{}');
+        const curStock = (overrides[selectedProduct.id] && overrides[selectedProduct.id].stock !== undefined)
+          ? overrides[selectedProduct.id].stock : selectedProduct.stock;
+        const newStock = Math.max(0, curStock - quantity);
+        if (!overrides[selectedProduct.id]) overrides[selectedProduct.id] = {};
+        overrides[selectedProduct.id].stock = newStock;
+        localStorage.setItem('pp_menu_overrides', JSON.stringify(overrides));
+
+        window.dispatchEvent(new Event('inventoryUpdated'));
+
+        // Show success screen
+        document.getElementById('modalBody').style.display = 'none';
+        document.getElementById('orderIdBadge').textContent = 'Order #' + orderId;
+        document.getElementById('successTitle').textContent = 'Payment Confirmed!';
+        document.getElementById('successMessage').textContent = 'Your payment of $' + total.toFixed(2) + ' was successfully charged. Your item is secured and stock is locked in!';
+        document.getElementById('successScreen').classList.add('active');
+        btn.disabled = false;
+        renderProducts();
+      }, 1000);
       return;
     }
 
-    // Online Stripe payment flow
-    try {
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderId: orderId,
-          customerName: name,
-          customerEmail: '',
-          total: total,
-          items: [{ name: selectedProduct.name, quantity: quantity, unitPrice: selectedProduct.price }]
-        })
-      });
+    // --- CASE 2: CASH PAYMENT ---
+    btn.textContent = 'Placing Cash Order...';
+    if (isOutbidSelected) {
+      total += 1.00;
+    }
 
-      if (response.ok) {
-        const session = await response.json();
-        if (session && session.url) {
-          window.location.href = session.url;
-          return;
-        }
+    setTimeout(function() {
+      const order = {
+        orderId: orderId,
+        customerName: name,
+        customerPhone: phone,
+        productId: selectedProduct.id,
+        productName: selectedProduct.name,
+        productPrice: selectedProduct.price,
+        quantity: quantity,
+        total: total,
+        extraDollar: isOutbidSelected,
+        message: message,
+        paymentMethod: isOutbidSelected ? 'Cash on meetup (+$1.00 Outbid Priority)' : 'Cash on meetup',
+        status: 'pending', // Requires admin confirmation in admin panel!
+        stockDecremented: false, // NOT decremented until admin confirms!
+        timestamp: new Date().toISOString()
+      };
+
+      const orders = getOrders();
+      orders.push(order);
+      localStorage.setItem('pp_orders', JSON.stringify(orders));
+
+      window.dispatchEvent(new Event('inventoryUpdated'));
+
+      document.getElementById('modalBody').style.display = 'none';
+      document.getElementById('orderIdBadge').textContent = 'Order #' + orderId;
+      document.getElementById('successTitle').textContent = 'Cash Order Received!';
+      if (isOutbidSelected) {
+        document.getElementById('successMessage').textContent = 'Priority bid placed! Total: $' + total.toFixed(2) + ' (including your +$1.00 extra bid). The admin will confirm your order in the dashboard.';
+      } else {
+        document.getElementById('successMessage').textContent = 'Order received at original price ($' + total.toFixed(2) + '). The admin will confirm your order in the dashboard.';
       }
-    } catch(err) {
-      console.warn('Stripe checkout error:', err);
-    }
-
-    // If Stripe API is not currently connected to a backend server, complete gracefully
-    order.status = 'pending';
-    const allOrders = JSON.parse(localStorage.getItem('pp_orders') || '[]');
-    const idx = allOrders.findIndex(o => o.orderId === orderId);
-    if (idx !== -1) {
-      allOrders[idx].status = 'pending';
-      localStorage.setItem('pp_orders', JSON.stringify(allOrders));
-    }
-
-    document.getElementById('modalBody').style.display = 'none';
-    document.getElementById('orderIdBadge').textContent = 'Order #' + orderId;
-    document.getElementById('successMessage').textContent = 'Order #' + orderId + ' placed successfully! Total: $' + total.toFixed(2) + '. We will contact you at ' + phone + ' for delivery.';
-    document.getElementById('successScreen').classList.add('active');
-    btn.disabled = false;
-    btn.textContent = '💳 Place Order & Pay Online';
-    renderProducts();
+      document.getElementById('successScreen').classList.add('active');
+      btn.disabled = false;
+      renderProducts();
+    }, 600);
   });
 
   function showToast(msg) {
@@ -506,11 +661,10 @@
     setTimeout(function() { t.classList.remove('show'); }, 3000);
   }
 
-  // Safety fallback: ensure loading overlay disappears within 2.5 seconds no matter what
   setTimeout(function() {
     const overlay = document.getElementById('loadingOverlay');
     if (overlay) overlay.classList.remove('active');
-  }, 2500);
+  }, 2000);
 
   window.addEventListener('inventoryUpdated', renderProducts);
   window.addEventListener('DOMContentLoaded', renderProducts);

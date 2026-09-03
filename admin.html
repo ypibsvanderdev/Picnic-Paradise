@@ -5,103 +5,138 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard - The Sugar Printer</title>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    :root{--primary:#8b5cf6;--primary-dark:#6d28d9;--accent:#06d6a0;--purple:#4c1d95;--bg:#f0f4ff;--card:#fff;--text:#2d2d2d;--muted:#888;--radius:16px;--shadow:0 4px 24px rgba(0,0,0,0.08);}
-    *{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:"Nunito",sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
-    h1,h2,h3,h4{font-family:"Fredoka One",cursive;}
-    .login-page{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
-    .login-card{background:var(--card);border-radius:28px;padding:48px 40px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.12);max-width:420px;width:100%;}
-    .login-card .logo{font-size:3.5rem;margin-bottom:12px;}
-    .login-card h1{font-size:1.8rem;color:var(--primary);margin-bottom:6px;}
-    .login-card p{color:var(--muted);margin-bottom:32px;font-size:.95rem;}
-    .login-card input{width:100%;padding:14px 20px;border:2px solid #e0e0e0;border-radius:14px;font-size:1rem;outline:none;margin-bottom:16px;font-family:"Nunito",sans-serif;}
-    .login-card input:focus{border-color:var(--primary);}
-    .login-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border:none;border-radius:50px;font-family:"Fredoka One",cursive;font-size:1.1rem;cursor:pointer;transition:transform .2s;box-shadow:0 4px 15px rgba(139,92,246,0.35);}
-    .login-btn:hover{transform:scale(1.03);}
-    .access-denied{color:#dc3545;background:#fff5f5;border-radius:12px;padding:16px;margin-top:20px;font-weight:700;display:none;}
-    .dashboard{display:none;}
-    .sidebar{position:fixed;top:0;left:0;width:260px;height:100vh;background:linear-gradient(180deg,#1a1a2e 0%,#16213e 100%);padding:28px 20px;overflow-y:auto;z-index:100;}
-    .sidebar-logo{text-align:center;margin-bottom:32px;}
-    .sidebar-logo span{font-size:2.5rem;display:block;margin-bottom:8px;}
-    .sidebar-logo h2{color:white;font-size:1.2rem;line-height:1.3;}
-    .sidebar-logo p{color:rgba(255,255,255,0.5);font-size:.8rem;margin-top:4px;}
-    nav a{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;color:rgba(255,255,255,0.7);text-decoration:none;font-weight:700;margin-bottom:6px;transition:all .2s;font-size:.95rem;}
-    nav a:hover,nav a.active{background:rgba(139,92,246,0.2);color:white;}
-    nav a .nav-icon{font-size:1.2rem;width:24px;text-align:center;}
-    .nav-badge{margin-left:auto;background:var(--primary);color:white;border-radius:20px;padding:2px 10px;font-size:.75rem;font-weight:800;}
-    .signout-btn{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;color:rgba(255,255,255,0.5);background:none;border:none;cursor:pointer;font-family:"Nunito",sans-serif;font-weight:700;font-size:.95rem;width:100%;margin-top:20px;transition:all .2s;}
-    .signout-btn:hover{background:rgba(255,255,255,0.08);color:white;}
-    .content{margin-left:260px;padding:32px;min-height:100vh;}
-    .page-header{margin-bottom:28px;}
-    .page-header h1{font-size:2rem;color:var(--text);}
-    .page-header p{color:var(--muted);margin-top:4px;}
-    .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:28px;}
-    .stat-card{background:var(--card);border-radius:var(--radius);padding:20px;text-align:center;box-shadow:var(--shadow);}
-    .stat-card .stat-num{font-size:2.2rem;}
-    .stat-card .stat-label{font-size:.8rem;color:var(--muted);font-weight:700;text-transform:uppercase;margin-top:4px;}
-    .stat-pending .stat-num{color:#f59e0b;}
-    .stat-approved .stat-num{color:var(--accent);}
-    .stat-rejected .stat-num{color:#ef4444;}
-    .stat-revenue .stat-num{color:var(--purple);}
-    .tab-panel{display:none;}
-    .tab-panel.active{display:block;}
-    .orders-list{display:flex;flex-direction:column;gap:16px;}
-    .order-card{background:var(--card);border-radius:var(--radius);padding:20px 24px;box-shadow:var(--shadow);border-left:5px solid #e0e0e0;transition:border-color .2s;}
-    .order-card.pending{border-left-color:#f59e0b;}
-    .order-card.approved{border-left-color:var(--accent);}
-    .order-card.rejected{border-left-color:#ef4444;}
-    .order-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-    .order-info h3{font-size:1.2rem;color:var(--text);}
-    .order-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
-    .meta-pill{background:#f0f0f0;padding:3px 10px;border-radius:20px;font-size:.8rem;font-weight:700;color:#555;}
-    .status-badge{padding:6px 14px;border-radius:20px;font-size:.8rem;font-weight:800;text-transform:uppercase;white-space:nowrap;}
-    .badge-pending{background:#fef3c7;color:#92400e;}
-    .badge-approved{background:#d1fae5;color:#065f46;}
-    .badge-rejected{background:#fee2e2;color:#991b1b;}
-    .order-msg{background:#fafafa;border-radius:10px;padding:10px 14px;margin:12px 0;font-size:.9rem;color:#555;border-left:3px solid #e0e0e0;}
-    .order-actions{display:flex;gap:10px;margin-top:14px;}
-    .btn-approve,.btn-reject{padding:9px 20px;border-radius:50px;border:none;font-family:"Nunito",sans-serif;font-weight:800;cursor:pointer;font-size:.9rem;transition:all .2s;}
-    .btn-approve{background:linear-gradient(135deg,#06d6a0,#05b384);color:white;box-shadow:0 4px 12px rgba(6,214,160,0.3);}
-    .btn-approve:hover{transform:scale(1.05);}
-    .btn-reject{background:linear-gradient(135deg,#ef4444,#dc2626);color:white;box-shadow:0 4px 12px rgba(239,68,68,0.3);}
-    .btn-reject:hover{transform:scale(1.05);}
-    .product-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;}
-    .prod-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;padding:20px;}
-    .prod-card-img{height:120px;background:#f5f0ff;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:12px;}
-    .prod-card-img img{width:100%;height:100%;object-fit:cover;border-radius:12px;}
-    .prod-card-img .emoji-fb{font-size:3rem;}
-    .prod-card h3{font-size:1.1rem;margin-bottom:4px;}
-    .prod-card .prod-price{color:var(--primary);font-weight:800;font-size:1.2rem;margin-bottom:8px;}
-    .stock-stepper{display:flex;align-items:center;gap:6px;margin:8px 0;}
-    .stock-stepper button{width:30px;height:30px;border-radius:8px;border:1px solid #ddd;background:white;font-weight:800;cursor:pointer;font-size:1rem;}
-    .stock-stepper button:hover{background:var(--primary);color:white;border-color:var(--primary);}
-    .stock-stepper input{width:50px;text-align:center;border:1px solid #ddd;border-radius:8px;padding:4px;font-weight:700;}
-    .prod-actions{display:flex;gap:8px;margin-top:10px;}
-    .prod-actions button{padding:6px 14px;border-radius:20px;border:none;font-weight:700;cursor:pointer;font-size:.85rem;transition:all .2s;}
-    .btn-edit{background:#ede9fe;color:var(--primary);}
-    .btn-delete{background:#fee2e2;color:#ef4444;}
-    .add-form{background:var(--card);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);max-width:600px;}
-    .add-form .form-group{margin-bottom:18px;}
-    .add-form label{display:block;font-weight:700;margin-bottom:6px;font-size:.9rem;}
-    .add-form label span{color:var(--primary);}
-    .add-form input,.add-form textarea,.add-form select{width:100%;padding:12px 16px;border:2px solid #e8e8e8;border-radius:14px;font-family:"Nunito",sans-serif;font-size:1rem;outline:none;}
-    .add-form input:focus,.add-form textarea:focus,.add-form select:focus{border-color:var(--primary);}
-    .img-preview{margin-top:8px;max-height:120px;border-radius:12px;}
-    .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(100px);background:#2d2d2d;color:white;padding:14px 24px;border-radius:50px;font-weight:700;z-index:9999;transition:transform .4s cubic-bezier(.34,1.56,.64,1);}
-    .toast.show{transform:translateX(-50%) translateY(0);}
-    .empty-state{text-align:center;padding:40px;color:var(--muted);}
-    .empty-state .emoji{font-size:3rem;margin-bottom:12px;}
-    @media(max-width:768px){.sidebar{display:none;}.content{margin-left:0;}}
-  </style>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <style>
-    .divider{display:flex;align-items:center;gap:12px;margin:24px 0;color:var(--muted);font-size:.85rem;font-weight:700;}
-    .divider::before,.divider::after{content:'';flex:1;height:1px;background:#e0e0e0;}
-    .google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:14px 20px;background:white;border:2px solid #e0e0e0;border-radius:50px;font-family:"Nunito",sans-serif;font-size:1rem;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
-    .google-btn:hover{border-color:var(--primary);box-shadow:0 4px 16px rgba(139,92,246,0.2);}
-    .google-btn svg{width:22px;height:22px;}
+    :root {
+      --primary: #8b5cf6;
+      --primary-dark: #6d28d9;
+      --accent: #06d6a0;
+      --purple: #4c1d95;
+      --bg: #f0f4ff;
+      --card: #fff;
+      --text: #2d2d2d;
+      --muted: #888;
+      --radius: 16px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Nunito", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    h1, h2, h3, h4 { font-family: "Fredoka One", cursive; }
+
+    /* Login Page */
+    .login-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+    .login-card { background: var(--card); border-radius: 28px; padding: 44px 36px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.12); max-width: 420px; width: 100%; }
+    .login-card .logo { font-size: 3.2rem; margin-bottom: 12px; }
+    .login-card h1 { font-size: 1.8rem; color: var(--primary); margin-bottom: 4px; }
+    .login-card p { color: var(--muted); margin-bottom: 24px; font-size: .95rem; }
+    
+    .google-btn {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      width: 100%; padding: 13px 20px; background: white; border: 2px solid #e0e0e0;
+      border-radius: 50px; font-family: "Nunito", sans-serif; font-size: 1rem;
+      font-weight: 700; cursor: pointer; transition: all .2s; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .google-btn:hover { border-color: var(--primary); box-shadow: 0 4px 16px rgba(139,92,246,0.2); }
+    .google-btn svg { width: 22px; height: 22px; }
+
+    .divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--muted); font-size: .8rem; font-weight: 800; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #e0e0e0; }
+
+    .login-card input {
+      width: 100%; padding: 13px 18px; border: 2px solid #e0e0e0; border-radius: 14px;
+      font-size: 1rem; outline: none; margin-bottom: 14px; font-family: "Nunito", sans-serif;
+    }
+    .login-card input:focus { border-color: var(--primary); }
+    .login-btn {
+      width: 100%; padding: 13px; background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white; border: none; border-radius: 50px; font-family: "Fredoka One", cursive;
+      font-size: 1.1rem; cursor: pointer; transition: transform .2s; box-shadow: 0 4px 15px rgba(139,92,246,0.35);
+    }
+    .login-btn:hover { transform: scale(1.02); }
+    .access-denied { color: #dc3545; background: #fff5f5; border-radius: 12px; padding: 14px; margin-top: 18px; font-weight: 700; font-size: 0.85rem; display: none; }
+
+    /* Dashboard Layout */
+    .dashboard { display: none; }
+    .sidebar { position: fixed; top: 0; left: 0; width: 260px; height: 100vh; background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%); padding: 28px 20px; overflow-y: auto; z-index: 100; }
+    .sidebar-logo { text-align: center; margin-bottom: 32px; }
+    .sidebar-logo span { font-size: 2.5rem; display: block; margin-bottom: 8px; }
+    .sidebar-logo h2 { color: white; font-size: 1.2rem; line-height: 1.3; }
+    .sidebar-logo p { color: rgba(255,255,255,0.6); font-size: .8rem; margin-top: 4px; word-break: break-all; }
+    nav a { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px; color: rgba(255,255,255,0.7); text-decoration: none; font-weight: 700; margin-bottom: 6px; transition: all .2s; font-size: .95rem; }
+    nav a:hover, nav a.active { background: rgba(139,92,246,0.25); color: white; }
+    nav a .nav-icon { font-size: 1.2rem; width: 24px; text-align: center; }
+    .nav-badge { margin-left: auto; background: var(--primary); color: white; border-radius: 20px; padding: 2px 10px; font-size: .75rem; font-weight: 800; }
+    .signout-btn { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px; color: rgba(255,255,255,0.6); background: none; border: none; cursor: pointer; font-family: "Nunito", sans-serif; font-weight: 700; font-size: .95rem; width: 100%; margin-top: 20px; transition: all .2s; }
+    .signout-btn:hover { background: rgba(255,255,255,0.08); color: white; }
+    
+    .content { margin-left: 260px; padding: 32px; min-height: 100vh; }
+    .page-header { margin-bottom: 28px; }
+    .page-header h1 { font-size: 2rem; color: var(--text); }
+    .page-header p { color: var(--muted); margin-top: 4px; }
+    
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .stat-card { background: var(--card); border-radius: var(--radius); padding: 20px; text-align: center; box-shadow: var(--shadow); }
+    .stat-card .stat-num { font-size: 2.2rem; }
+    .stat-card .stat-label { font-size: .8rem; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-top: 4px; }
+    .stat-pending .stat-num { color: #f59e0b; }
+    .stat-approved .stat-num { color: var(--accent); }
+    .stat-rejected .stat-num { color: #ef4444; }
+    .stat-revenue .stat-num { color: var(--purple); }
+    
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    
+    .orders-list { display: flex; flex-direction: column; gap: 16px; }
+    .order-card { background: var(--card); border-radius: var(--radius); padding: 20px 24px; box-shadow: var(--shadow); border-left: 5px solid #e0e0e0; transition: border-color .2s; }
+    .order-card.pending { border-left-color: #f59e0b; }
+    .order-card.approved { border-left-color: var(--accent); }
+    .order-card.rejected { border-left-color: #ef4444; }
+    .order-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .order-info h3 { font-size: 1.2rem; color: var(--text); }
+    .order-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .meta-pill { background: #f0f0f0; padding: 3px 10px; border-radius: 20px; font-size: .8rem; font-weight: 700; color: #555; }
+    .status-badge { padding: 6px 14px; border-radius: 20px; font-size: .8rem; font-weight: 800; text-transform: uppercase; white-space: nowrap; }
+    .badge-pending { background: #fef3c7; color: #92400e; }
+    .badge-approved { background: #d1fae5; color: #065f46; }
+    .badge-rejected { background: #fee2e2; color: #991b1b; }
+    .order-msg { background: #fafafa; border-radius: 10px; padding: 10px 14px; margin: 12px 0; font-size: .9rem; color: #555; border-left: 3px solid #e0e0e0; }
+    
+    .order-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    .btn-approve, .btn-reject { padding: 9px 20px; border-radius: 50px; border: none; font-family: "Nunito", sans-serif; font-weight: 800; cursor: pointer; font-size: .9rem; transition: all .2s; }
+    .btn-approve { background: linear-gradient(135deg, #06d6a0, #05b384); color: white; box-shadow: 0 4px 12px rgba(6,214,160,0.3); }
+    .btn-approve:hover { transform: scale(1.05); }
+    .btn-reject { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; box-shadow: 0 4px 12px rgba(239,68,68,0.3); }
+    .btn-reject:hover { transform: scale(1.05); }
+    
+    .product-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+    .prod-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; padding: 20px; }
+    .prod-card-img { height: 120px; background: #f5f0ff; border-radius: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 12px; }
+    .prod-card-img img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
+    .prod-card-img .emoji-fb { font-size: 3rem; }
+    .prod-card h3 { font-size: 1.1rem; margin-bottom: 4px; }
+    .prod-card .prod-price { color: var(--primary); font-weight: 800; font-size: 1.2rem; margin-bottom: 8px; }
+    .stock-stepper { display: flex; align-items: center; gap: 6px; margin: 8px 0; }
+    .stock-stepper button { width: 30px; height: 30px; border-radius: 8px; border: 1px solid #ddd; background: white; font-weight: 800; cursor: pointer; font-size: 1rem; }
+    .stock-stepper button:hover { background: var(--primary); color: white; border-color: var(--primary); }
+    .stock-stepper input { width: 50px; text-align: center; border: 1px solid #ddd; border-radius: 8px; padding: 4px; font-weight: 700; }
+    .prod-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .prod-actions button { padding: 6px 14px; border-radius: 20px; border: none; font-weight: 700; cursor: pointer; font-size: .85rem; transition: all .2s; }
+    .btn-delete { background: #fee2e2; color: #ef4444; }
+    
+    .add-form { background: var(--card); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow); max-width: 600px; }
+    .add-form .form-group { margin-bottom: 18px; }
+    .add-form label { display: block; font-weight: 700; margin-bottom: 6px; font-size: .9rem; }
+    .add-form label span { color: var(--primary); }
+    .add-form input, .add-form textarea, .add-form select { width: 100%; padding: 12px 16px; border: 2px solid #e8e8e8; border-radius: 14px; font-family: "Nunito", sans-serif; font-size: 1rem; outline: none; }
+    .add-form input:focus, .add-form textarea:focus, .add-form select:focus { border-color: var(--primary); }
+    .img-preview { margin-top: 8px; max-height: 120px; border-radius: 12px; }
+    
+    .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: #2d2d2d; color: white; padding: 14px 24px; border-radius: 50px; font-weight: 700; z-index: 9999; transition: transform .4s cubic-bezier(.34,1.56,.64,1); }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .empty-state { text-align: center; padding: 40px; color: var(--muted); }
+    .empty-state .emoji { font-size: 3rem; margin-bottom: 12px; }
+    @media(max-width:768px){ .sidebar { display: none; } .content { margin-left: 0; } }
   </style>
 </head>
 <body>
@@ -112,16 +147,19 @@
     <div class="logo">🖨️</div>
     <h1>The Sugar Printer</h1>
     <p>Admin Dashboard</p>
-    <button class="google-btn" id="googleLoginBtn">
+
+    <button class="google-btn" id="googleLoginBtn" type="button">
       <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
       Sign in with Google
     </button>
+
     <div class="divider">OR USE PASSWORD</div>
+
     <form id="loginForm">
-      <input type="password" id="adminPass" placeholder="Enter admin password" required>
+      <input type="password" id="adminPass" placeholder="Enter password (9326)" required>
       <button type="submit" class="login-btn">🔒 Login</button>
     </form>
-    <div class="access-denied" id="accessDenied">❌ Wrong password. Try again.</div>
+    <div class="access-denied" id="accessDenied">❌ Access Denied</div>
   </div>
 </div>
 
@@ -131,7 +169,7 @@
     <div class="sidebar-logo">
       <span>🖨️</span>
       <h2>The Sugar Printer</h2>
-      <p>Admin Dashboard</p>
+      <p id="adminUserDisplay">Admin</p>
     </div>
     <nav>
       <a href="#" class="active" data-tab="orders"><span class="nav-icon">📦</span> Orders <span class="nav-badge" id="ordersBadge">0</span></a>
@@ -144,14 +182,14 @@
 
   <div class="content">
     <div class="page-header">
-      <h1>📦 Orders & Inventory</h1>
-      <p>Manage your store in real-time</p>
+      <h1>📦 Orders &amp; Inventory</h1>
+      <p>Manage your orders, stock and outbid requests</p>
     </div>
 
     <div class="stats-row" id="statsRow">
-      <div class="stat-card stat-pending"><div class="stat-num" id="statPending">0</div><div class="stat-label">Pending</div></div>
-      <div class="stat-card stat-approved"><div class="stat-num" id="statApproved">0</div><div class="stat-label">Approved</div></div>
-      <div class="stat-card stat-rejected"><div class="stat-num" id="statRejected">0</div><div class="stat-label">Rejected</div></div>
+      <div class="stat-card stat-pending"><div class="stat-num" id="statPending">0</div><div class="stat-label">Pending Cash</div></div>
+      <div class="stat-card stat-approved"><div class="stat-num" id="statApproved">0</div><div class="stat-label">Approved/Paid</div></div>
+      <div class="stat-card stat-rejected"><div class="stat-num" id="statRejected">0</div><div class="stat-label">Total Completed</div></div>
       <div class="stat-card stat-revenue"><div class="stat-num" id="statRevenue">$0</div><div class="stat-label">Revenue</div></div>
     </div>
 
@@ -174,7 +212,7 @@
           <div class="form-group"><label>Description</label><textarea id="newDesc" rows="2" placeholder="Short product description..."></textarea></div>
           <div class="form-group"><label>Price ($) <span>*</span></label><input type="number" id="newPrice" step="0.01" min="0.01" required placeholder="5.00"></div>
           <div class="form-group"><label>Initial Stock <span>*</span></label><input type="number" id="newStock" min="0" required placeholder="10"></div>
-          <div class="form-group"><label>Category</label><select id="newCategory"><option value="fidgets">Fidgets & Squishies</option><option value="3d-prints">3D Prints</option><option value="novelties">Novelties</option><option value="sweets">Sweet Treats</option></select></div>
+          <div class="form-group"><label>Category</label><select id="newCategory"><option value="fidgets">Fidgets &amp; Squishies</option><option value="3d-prints">3D Prints</option><option value="novelties">Novelties</option><option value="sweets">Sweet Treats</option></select></div>
           <div class="form-group"><label>Emoji</label><input type="text" id="newEmoji" placeholder="✨"></div>
           <div class="form-group"><label>Image (upload file)</label><input type="file" id="newImageFile" accept="image/*"><img id="imgPreview" class="img-preview" style="display:none;"></div>
           <div class="form-group"><label>OR Image URL</label><input type="url" id="newImageUrl" placeholder="https://..."></div>
@@ -198,6 +236,7 @@
     { id:'item-needoh-classic', name:'NeeDoh Classic Groovy Glob', description:'Super squishy stress ball that always bounces back!', price:4.50, image:'', stock:1, emoji:'🫧', category:'fidgets' },
     { id:'item-needoh-nice-berg', name:'NeeDoh Nice Berg', description:'Crystal-clear translucent iceberg squeeze block!', price:6, image:'', stock:1, emoji:'🧊', category:'fidgets' }
   ];
+
   const VALID_PASSWORDS = ['9326'];
 
   function getProducts() {
@@ -207,26 +246,80 @@
     let all = [...DEFAULT_PRODUCTS, ...custom].filter(p => !deleted.includes(p.id));
     return all.map(p => overrides[p.id] ? { ...p, ...overrides[p.id] } : { ...p });
   }
+
   function getOrders() { return JSON.parse(localStorage.getItem('pp_orders') || '[]'); }
   function saveOrders(o) { localStorage.setItem('pp_orders', JSON.stringify(o)); }
   function showToast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000); }
-  function signOut() { document.getElementById('dashboard').style.display='none'; document.getElementById('loginPage').style.display='flex'; }
 
-  // LOGIN
+  function openDashboard(userLabel) {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    document.getElementById('accessDenied').style.display = 'none';
+    if (userLabel) {
+      document.getElementById('adminUserDisplay').textContent = userLabel;
+    }
+    renderAll();
+  }
+
+  function signOut() {
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      firebase.auth().signOut().catch(function(){});
+    }
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('loginPage').style.display = 'flex';
+  }
+
+  // Password Login (9326)
   document.getElementById('loginForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const pass = document.getElementById('adminPass').value.trim();
     if (VALID_PASSWORDS.includes(pass)) {
-      document.getElementById('loginPage').style.display = 'none';
-      document.getElementById('dashboard').style.display = 'block';
-      document.getElementById('accessDenied').style.display = 'none';
-      renderAll();
+      openDashboard('Admin (Password)');
     } else {
-      document.getElementById('accessDenied').style.display = 'block';
+      const err = document.getElementById('accessDenied');
+      err.textContent = '❌ Wrong password. Enter 9326 to login.';
+      err.style.display = 'block';
     }
   });
 
-  // TABS
+  // Firebase Auth Setup
+  const firebaseConfig = {
+    apiKey: "AIzaSyAsbnd7Ubbc_KH3Ilvnw9PtPEdaNMsu9cE",
+    authDomain: "uday-and-veer-snack-shop.firebaseapp.com",
+    projectId: "uday-and-veer-snack-shop",
+    storageBucket: "uday-and-veer-snack-shop.firebasestorage.app",
+    messagingSenderId: "1005144962617",
+    appId: "1:1005144962617:web:1f4c9847c47cad62127fe8"
+  };
+
+  try {
+    firebase.initializeApp(firebaseConfig);
+    const googleBtn = document.getElementById('googleLoginBtn');
+    if (googleBtn) {
+      googleBtn.addEventListener('click', function() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        firebase.auth().signInWithPopup(provider).then(function(result) {
+          const user = result.user;
+          openDashboard(user.displayName || user.email);
+        }).catch(function(err) {
+          console.error('Google sign-in error:', err);
+          const errBox = document.getElementById('accessDenied');
+          errBox.textContent = '❌ ' + (err.message || 'Google Sign-in failed. Use password 9326.');
+          errBox.style.display = 'block';
+        });
+      });
+    }
+
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (user) {
+        openDashboard(user.displayName || user.email);
+      }
+    });
+  } catch(e) {
+    console.warn('Firebase init notice:', e);
+  }
+
+  // Tabs
   document.querySelectorAll('nav a[data-tab]').forEach(a => {
     a.addEventListener('click', function(e) {
       e.preventDefault();
@@ -245,11 +338,10 @@
     const orders = getOrders();
     const pending = orders.filter(o => o.status === 'pending').length;
     const approved = orders.filter(o => o.status === 'approved' || o.status === 'confirmed').length;
-    const rejected = orders.filter(o => o.status === 'rejected').length;
-    const revenue = orders.filter(o => o.status !== 'rejected').reduce((s,o) => s + (o.total || 0), 0);
+    const revenue = orders.reduce((s,o) => s + (o.total || 0), 0);
     document.getElementById('statPending').textContent = pending;
     document.getElementById('statApproved').textContent = approved;
-    document.getElementById('statRejected').textContent = rejected;
+    document.getElementById('statRejected').textContent = orders.length;
     document.getElementById('statRevenue').textContent = '$' + revenue.toFixed(2);
     document.getElementById('ordersBadge').textContent = pending;
   }
@@ -258,39 +350,121 @@
     const orders = getOrders().sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
     const list = document.getElementById('ordersList');
     if (orders.length === 0) { list.innerHTML = '<div class="empty-state"><div class="emoji">📦</div><p>No orders yet</p></div>'; return; }
+    
     list.innerHTML = orders.map((o,i) => {
-      const statusCls = o.status === 'approved' || o.status === 'confirmed' ? 'approved' : o.status === 'rejected' ? 'rejected' : 'pending';
-      const badgeCls = statusCls === 'approved' ? 'badge-approved' : statusCls === 'rejected' ? 'badge-rejected' : 'badge-pending';
-      const time = o.timestamp ? new Date(o.timestamp).toLocaleString() : 'Unknown';
-      const actions = o.status === 'pending' ? '<div class="order-actions"><button class="btn-approve" onclick="approveOrder('+i+')">✅ Approve</button><button class="btn-reject" onclick="rejectOrder('+i+')">❌ Reject</button></div>' : '';
+      const isOnline = o.paymentMethod && o.paymentMethod.includes('Paid Online');
+      const isOutbid = o.extraDollar || (o.paymentMethod && o.paymentMethod.includes('Outbid'));
+      const statusCls = (o.status === 'approved' || o.status === 'confirmed') ? 'approved' : 'pending';
+      const badgeCls = statusCls === 'approved' ? 'badge-approved' : 'badge-pending';
+      const badgeText = isOnline ? 'PAID ONLINE' : (o.status === 'approved' ? 'CONFIRMED' : 'PENDING APPROVAL');
+      const time = o.timestamp ? new Date(o.timestamp).toLocaleString() : 'Recent';
+
+      let payPill = '<span class="meta-pill" style="background:#f3f4f6; color:#374151; font-weight:700;">💵 CASH ON MEETUP</span>';
+      if (isOnline) {
+        payPill = '<span class="meta-pill" style="background:#d1fae5; color:#065f46; font-weight:800;">💳 PAID ONLINE (Stock Decremented)</span>';
+      } else if (isOutbid) {
+        payPill = '<span class="meta-pill" style="background:#fef3c7; color:#92400e; font-weight:800;">⚡ OUTBID OFFER (+$1.00 Extra)</span>';
+      }
+
+      let actions = '';
+      if (o.status === 'pending') {
+        actions = '<div class="order-actions">'
+          + '<button class="btn-approve" onclick="approveOrder('+i+')">✅ Confirm Order & Deduct Stock</button>'
+          + '<button class="btn-reject" onclick="rejectOrder('+i+')">❌ Reject & Delete Order</button>'
+          + '</div>';
+      } else {
+        actions = '<div class="order-actions">'
+          + '<button class="btn-reject" style="padding:6px 16px; font-size:0.8rem;" onclick="rejectOrder('+i+')">❌ Cancel Order & Return Stock</button>'
+          + '</div>';
+      }
+
       return '<div class="order-card '+statusCls+'">'
         +'<div class="order-top"><div class="order-info"><h3>'+(o.customerName||'Guest')+'</h3>'
         +'<div class="order-meta">'
         +'<span class="meta-pill">📞 '+(o.customerPhone||'N/A')+'</span>'
         +'<span class="meta-pill">'+(o.productName||o.orderId)+'</span>'
-        +'<span class="meta-pill">x'+(o.quantity||1)+'</span>'
+        +'<span class="meta-pill">Qty: '+(o.quantity||1)+'</span>'
+        +payPill
         +'<span class="meta-pill">🕒 '+time+'</span>'
         +'</div></div>'
-        +'<div><span class="status-badge '+badgeCls+'">'+statusCls.toUpperCase()+'</span>'
-        +'<div style="font-weight:800;font-size:1.3rem;color:var(--primary);margin-top:6px;">$'+(o.total||0).toFixed(2)+'</div></div></div>'
-        +(o.message ? '<div class="order-msg">💬 '+o.message+'</div>' : '')
+        +'<div><span class="status-badge '+badgeCls+'">'+badgeText+'</span>'
+        +'<div style="font-weight:800;font-size:1.3rem;color:var(--primary);margin-top:6px;text-align:right;">$' + Number(o.total||0).toFixed(2) + '</div></div></div>'
+        +(o.message ? '<div class="order-msg">💬 Notes: '+o.message+'</div>' : '')
         +actions+'</div>';
     }).join('');
   }
 
-  window.approveOrder = function(i) { const o=getOrders(); if(o[i]){o[i].status='approved';saveOrders(o);renderAll();showToast('Order approved!');} };
-  window.rejectOrder = function(i) { const o=getOrders(); if(o[i]){o[i].status='rejected';saveOrders(o);renderAll();showToast('Order rejected');} };
+  // APPROVE CASH ORDER: Decrements stock and confirms order
+  window.approveOrder = function(i) {
+    const orders = getOrders();
+    if (!orders[i]) return;
+    const order = orders[i];
+    order.status = 'approved';
+
+    // If stock has not been deducted yet for this cash order, deduct it now
+    if (!order.stockDecremented) {
+      const overrides = JSON.parse(localStorage.getItem('pp_menu_overrides') || '{}');
+      const prods = getProducts();
+      const p = prods.find(x => x.id === order.productId);
+      if (p) {
+        const curStock = (overrides[p.id] && overrides[p.id].stock !== undefined) ? overrides[p.id].stock : p.stock;
+        const newStock = Math.max(0, parseInt(curStock, 10) - (order.quantity || 1));
+        if (!overrides[p.id]) overrides[p.id] = {};
+        overrides[p.id].stock = newStock;
+        localStorage.setItem('pp_menu_overrides', JSON.stringify(overrides));
+        order.stockDecremented = true;
+      }
+    }
+
+    saveOrders(orders);
+    window.dispatchEvent(new Event('inventoryUpdated'));
+    renderAll();
+    showToast('Order confirmed & stock deducted!');
+  };
+
+  // REJECT ORDER: Deletes the order AND re-adds the quantity to stock!
+  window.rejectOrder = function(i) {
+    const orders = getOrders();
+    if (!orders[i]) return;
+    const order = orders[i];
+
+    if (!confirm('Reject and delete order from ' + (order.customerName || 'customer') + '? If stock was already deducted, it will be returned.')) return;
+
+    // If stock was already decremented (e.g. Online order or previously approved Cash order), return it to stock!
+    if (order.stockDecremented) {
+      const overrides = JSON.parse(localStorage.getItem('pp_menu_overrides') || '{}');
+      const prods = getProducts();
+      const p = prods.find(x => x.id === order.productId);
+      if (p) {
+        const curStock = (overrides[p.id] && overrides[p.id].stock !== undefined) ? overrides[p.id].stock : p.stock;
+        const newStock = parseInt(curStock, 10) + (order.quantity || 1);
+        if (!overrides[p.id]) overrides[p.id] = {};
+        overrides[p.id].stock = newStock;
+        localStorage.setItem('pp_menu_overrides', JSON.stringify(overrides));
+      }
+    }
+
+    // Delete the order from list
+    orders.splice(i, 1);
+    saveOrders(orders);
+
+    window.dispatchEvent(new Event('inventoryUpdated'));
+    renderAll();
+    showToast('Order deleted and stock re-added!');
+  };
 
   function renderProducts() {
     const prods = getProducts();
     const grid = document.getElementById('adminProductGrid');
     if (prods.length === 0) { grid.innerHTML = '<div class="empty-state"><div class="emoji">🏪</div><p>No products</p></div>'; return; }
+    
     grid.innerHTML = prods.map(p => {
       const stock = (p.stock !== undefined) ? parseInt(p.stock,10) : 0;
       const hasImg = p.image && p.image.length > 0;
       const imgHtml = hasImg ? '<img src="'+p.image+'" alt="'+p.name+'">' : '<span class="emoji-fb">'+(p.emoji||'✨')+'</span>';
       const stockCls = stock <= 0 ? 'color:#ef4444' : stock <= 3 ? 'color:#f59e0b' : 'color:var(--accent)';
-      const stockLabel = stock <= 0 ? 'Out of Stock' : stock <= 3 ? 'Low Stock' : 'In Stock';
+      const stockLabel = stock <= 0 ? 'Out of Stock' : stock <= 3 ? ('Low Stock (' + stock + ')') : ('In Stock (' + stock + ')');
+      
       return '<div class="prod-card">'
         +'<div class="prod-card-img">'+imgHtml+'</div>'
         +'<h3>'+(p.emoji||'')+' '+p.name+'</h3>'
@@ -302,7 +476,7 @@
         +'<button onclick="adjustStock(\''+p.id+'\',1)">+</button>'
         +'</div>'
         +'<div class="prod-actions">'
-        +'<button class="btn-delete" onclick="deleteProduct(\''+p.id+'\')">Delete</button>'
+        +'<button class="btn-delete" onclick="deleteProduct(\''+p.id+'\')">Delete Product</button>'
         +'</div></div>';
     }).join('');
   }
@@ -331,26 +505,32 @@
   };
 
   window.deleteProduct = function(id) {
-    if (!confirm('Delete this product?')) return;
+    if (!confirm('Delete this product from your store?')) return;
     const deleted = JSON.parse(localStorage.getItem('pp_deleted_items') || '[]');
     if (!deleted.includes(id)) { deleted.push(id); localStorage.setItem('pp_deleted_items', JSON.stringify(deleted)); }
-    renderProducts(); showToast('Product deleted');
+    window.dispatchEvent(new Event('inventoryUpdated'));
+    renderProducts();
+    showToast('Product deleted');
   };
 
-  // IMAGE UPLOAD PREVIEW
-  document.getElementById('newImageFile').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(ev) {
-      document.getElementById('imgPreview').src = ev.target.result;
-      document.getElementById('imgPreview').style.display = 'block';
-      document.getElementById('imgPreview').dataset.base64 = ev.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
+  // Image file preview
+  const fileInput = document.getElementById('newImageFile');
+  if (fileInput) {
+    fileInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        const preview = document.getElementById('imgPreview');
+        preview.src = ev.target.result;
+        preview.style.display = 'block';
+        preview.dataset.base64 = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 
-  // ADD PRODUCT
+  // Add Product Form
   document.getElementById('addProductForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const name = document.getElementById('newName').value.trim();
@@ -362,86 +542,44 @@
     const imgPreview = document.getElementById('imgPreview');
     const imgUrl = document.getElementById('newImageUrl').value.trim();
     const image = (imgPreview.dataset.base64) ? imgPreview.dataset.base64 : imgUrl;
+    
     if (!name || isNaN(price) || price <= 0) { showToast('Please fill in required fields'); return; }
+    
     const product = { id: 'custom-' + Date.now(), name, description: desc, price, stock: stock || 0, category, emoji, image };
     const custom = JSON.parse(localStorage.getItem('pp_custom_items') || '[]');
     custom.push(product);
     localStorage.setItem('pp_custom_items', JSON.stringify(custom));
+    
     this.reset();
     imgPreview.style.display = 'none';
     imgPreview.dataset.base64 = '';
-    showToast('Product added!');
+    showToast('Product added successfully!');
     window.dispatchEvent(new Event('inventoryUpdated'));
     renderProducts();
   });
 
   function renderAnalytics() {
     const orders = getOrders();
-    const prods = getProducts();
     const total = orders.length;
-    const rev = orders.filter(o=>o.status!=='rejected').reduce((s,o)=>s+(o.total||0),0);
+    const rev = orders.reduce((s,o)=>s+(o.total||0),0);
     const pending = orders.filter(o=>o.status==='pending').length;
     const approved = orders.filter(o=>o.status==='approved'||o.status==='confirmed').length;
-    // Top products
+    
     const prodCounts = {};
     orders.forEach(o => { if(o.productName) prodCounts[o.productName] = (prodCounts[o.productName]||0) + (o.quantity||1); });
     const topProds = Object.entries(prodCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
     let topHtml = topProds.map(([name,cnt]) => '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;"><span>'+name+'</span><strong>'+cnt+' sold</strong></div>').join('');
     if (!topHtml) topHtml = '<p style="color:var(--muted);">No sales data yet</p>';
+    
     document.getElementById('statsContent').innerHTML =
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">'
-      +'<div class="prod-card" style="padding:24px;"><h3>💰 Total Revenue</h3><div style="font-size:2rem;color:var(--primary);margin-top:8px;">$'+rev.toFixed(2)+'</div></div>'
-      +'<div class="prod-card" style="padding:24px;"><h3>📦 Total Orders</h3><div style="font-size:2rem;color:var(--primary);margin-top:8px;">'+total+'</div></div>'
+      +'<div class="prod-card" style="padding:24px;"><h3>💰 Total Revenue</h3><div style="font-size:2rem;color:var(--primary);margin-top:8px;">$' + rev.toFixed(2) + '</div></div>'
+      +'<div class="prod-card" style="padding:24px;"><h3>📦 Total Orders</h3><div style="font-size:2rem;color:var(--primary);margin-top:8px;">' + total + '</div></div>'
       +'</div>'
       +'<div class="prod-card" style="padding:24px;margin-top:20px;"><h3>🏆 Top Products</h3><div style="margin-top:12px;">'+topHtml+'</div></div>';
   }
 
   window.addEventListener('inventoryUpdated', renderAll);
-
-  // Firebase Auth
-  const firebaseConfig = {
-    apiKey: "AIzaSyAsbnd7Ubbc_KH3Ilvnw9PtPEdaNMsu9cE",
-    authDomain: "uday-and-veer-snack-shop.firebaseapp.com",
-    projectId: "uday-and-veer-snack-shop",
-    storageBucket: "uday-and-veer-snack-shop.firebasestorage.app",
-    messagingSenderId: "1005144962617",
-    appId: "1:1005144962617:web:1f4c9847c47cad62127fe8"
-  };
-  firebase.initializeApp(firebaseConfig);
-
-  document.getElementById('googleLoginBtn').addEventListener('click', function() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(provider).then(function(result) {
-      document.getElementById('loginPage').style.display = 'none';
-      document.getElementById('dashboard').style.display = 'block';
-      document.getElementById('accessDenied').style.display = 'none';
-      // Show who's logged in
-      const user = result.user;
-      document.querySelector('.sidebar-logo p').textContent = user.displayName || user.email;
-      renderAll();
-    }).catch(function(err) {
-      console.error('Google sign-in error:', err);
-      document.getElementById('accessDenied').style.display = 'block';
-      document.getElementById('accessDenied').textContent = '\u274C ' + (err.message || 'Sign-in failed');
-    });
-  });
-
-  // Check if already signed in
-  firebase.auth().onAuthStateChanged(function(user) {
-    if (user) {
-      document.getElementById('loginPage').style.display = 'none';
-      document.getElementById('dashboard').style.display = 'block';
-      document.querySelector('.sidebar-logo p').textContent = user.displayName || user.email;
-      renderAll();
-    }
-  });
-
-  // Update signOut to also sign out of Firebase
-  window.signOut = function() {
-    firebase.auth().signOut().catch(function(){});
-    document.getElementById('dashboard').style.display = 'none';
-    document.getElementById('loginPage').style.display = 'flex';
-  };
 </script>
 </body>
 </html>
